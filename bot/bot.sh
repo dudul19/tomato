@@ -38,10 +38,10 @@ domain=$(cat /etc/xray/domain 2>/dev/null || echo "Domain Not Set" )
 draw_header() {
     clear
     echo -e "${C_BURGUNDY}╔══════════════════════════════════════════════════════╗${C_RESET}"
-    echo -e "${C_BURGUNDY}║${C_RESET} ${C_SAGE}${ICON_TOMATO}   ${C_TOMATO}TOMATO BOT MANAGER${C_RESET} ${C_GOLD}(PANEL INSTALLER)${C_RESET}      ${C_BURGUNDY}║${C_RESET}"
+    echo -e "${C_BURGUNDY}║${C_RESET} ${C_SAGE}       ${ICON_TOMATO}  ${C_TOMATO}TOMATO BOT MANAGER${C_RESET} ${C_GOLD}(PANEL INSTALLER)${C_RESET}      ${C_BURGUNDY}║${C_RESET}"
     echo -e "${C_BURGUNDY}╠══════════════════════════════════════════════════════╣${C_RESET}"
-    echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}${ICON_STAR} AUTHOR : ${C_CREAM}DUDUL (TEA V.1.0)${C_RESET}                   ${C_BURGUNDY}║${C_RESET}"
-    echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}${ICON_STAR} TEAM   : ${C_CREAM}TFNUKLIR (2025)${C_RESET}                    ${C_BURGUNDY}║${C_RESET}"
+    echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}${ICON_STAR} AUTHOR   : ${C_CREAM}@dudulrealnofek ${C_RESET}                       ${C_BURGUNDY}║${C_RESET}"
+    echo -e "${C_BURGUNDY}║${C_RESET} ${C_SAGE}${ICON_LEAF} VERSION  : ${C_CREAM}Tomat Merah V.1.1 - LTS${C_RESET}                ${C_BURGUNDY}║${C_RESET}"
     echo -e "${C_BURGUNDY}╚══════════════════════════════════════════════════════╝${C_RESET}"
     echo -e ""
     echo -e "  ${C_SAGE}${ICON_ROBOT} Memulai Instalasi Bot Panel...${C_RESET}"

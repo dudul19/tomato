@@ -1,87 +1,109 @@
 #!/bin/bash
-dateFromServer=$(curl -v --insecure --silent https://google.com/ 2>&1 | grep Date | sed -e 's/< Date: //')
-biji=`date +"%Y-%m-%d" -d "$dateFromServer"`
-RED='\033[0;31m'
-NC='\033[0m'
-GREEN='\033[0;32m'
-ORANGE='\033[0;33m'
-BLUE='\033[0;34m'
-PURPLE='\033[0;35m'
-CYAN='\033[0;36m'
-LIGHT='\033[0;37m'
-red='\e[1;31m'
-green='\e[0;32m'
-NC='\e[0m'
-green() { echo -e "\\033[32;1m${*}\\033[0m"; }
-red() { echo -e "\\033[31;1m${*}\\033[0m"; }
+
+# ==========================================================
+#  TOMATO LUXE THEME ENGINE - DELETE VMESS
+# ==========================================================
+
+# 1. Palette Definition (True Color)
+C_TOMATO="\033[38;2;217;69;57m"   # Primary Red
+C_BURGUNDY="\033[38;2;143;38;38m" # Border Red
+C_SAGE="\033[38;2;148;180;159m"   # Success Green
+C_GOLD="\033[38;2;230;203;165m"   # Emas (Label)
+C_CREAM="\033[38;2;253;251;247m"  # Putih Cream (Value)
+C_RESET="\033[0m"
 
 # Telegram Bot Configuration
-CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
-KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
-export TIME="10"
-export URL="https://api.telegram.org/bot$KEY/sendMessage"
+if [[ -f "/etc/bot/.bot.db" ]]; then
+    CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
+    KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
+    export TIME="10"
+    export URL="https://api.telegram.org/bot$KEY/sendMessage"
+fi
 
-# Function to send Telegram notification
+# ==========================================================
+#  NOTIFICATION FUNCTION
+# ==========================================================
 send_deletion_notification() {
-    local TEXT="<code>☉——————————————————————————☉</code>
-<code> 🗑️ Vmess Account Deleted 🗑️</code>
-<code>☉——————————————————————————☉</code>
-<code>Username    : $user</code>
-<code>Expired On  : $exp</code>
-<code>Deleted On  : $(date +"%d %b %Y %H:%M:%S")</code>
-<code>☉——————————————————————————☉</code>
-<code>🚀 Server: $(hostname)</code>
-<code>📌 IP: $(curl -s ipinfo.io/ip)</code>
-<code>☉——————————————————————————☉</code>
-<code>☉TOMATO AUTOSCRIPT☉</code>"
+    local TEXT="<b>◇━━━━━━━━━━━━━━━━━◇</b>
+<b> 🗑️ VMESS ACCOUNT DELETED</b>
+<b>◇━━━━━━━━━━━━━━━━━◇</b>
+<b>👤 Username :</b> <code>$user</code>
+<b>📅 Expired  :</b> <code>$exp</code>
+<b>⏱️ Deleted  :</b> <code>$(date +"%d %b %Y %H:%M:%S")</code>
+<b>◇━━━━━━━━━━━━━━━━━◇</b>
+<b>🚀 Server   :</b> <code>$(hostname)</code>
+<b>📌 IP       :</b> <code>$(curl -s ipinfo.io/ip)</code>
+<b>◇━━━━━━━━━━━━━━━━━◇</b>
+<b>🍅 TOMATO AUTOSCRIPT</b>"
 
     curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
 }
 
+# ==========================================================
+#  MAIN LOGIC
+# ==========================================================
 clear
 NUMBER_OF_CLIENTS=$(grep -c -E "^### " "/etc/xray/config.json")
+
+# --- Header ---
+echo -e "${C_BURGUNDY}◇━━━━━━━━━━━━━━━━━◇${C_RESET}"
+echo -e " ${C_TOMATO}DELETE VMESS ACCOUNT${C_RESET}"
+echo -e "${C_BURGUNDY}◇━━━━━━━━━━━━━━━━━◇${C_RESET}"
+
 if [[ ${NUMBER_OF_CLIENTS} == '0' ]]; then
-    echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "       Delete Vmess Account       "
-    echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo ""
-    echo "You have no existing clients!"
-    echo ""
-    echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo -e " ${C_GOLD}You have no existing clients!${C_RESET}"
+    echo -e "${C_BURGUNDY}◇━━━━━━━━━━━━━━━━━◇${C_RESET}"
     read -n 1 -s -r -p "Press any key to back on menu"
     menu
+    exit 0
 fi
 
-clear
-echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-echo -e "       Delete Vmess Account       "
-echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-echo "  User       Expired  " 
-echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+# --- List Clients ---
+echo -e " ${C_GOLD}User${C_RESET}             ${C_GOLD}Expired${C_RESET}"
+echo -e "${C_BURGUNDY}◇━━━━━━━━━━━━━━━━━◇${C_RESET}"
 grep -E "^### " "/etc/xray/config.json" | cut -d ' ' -f 2-3 | column -t | sort | uniq
-echo ""
-red "tap enter to go back"
-echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-read -rp "Input Username : " user
-if [ -z $user ]; then
+echo -e "${C_BURGUNDY}◇━━━━━━━━━━━━━━━━━◇${C_RESET}"
+echo -e "${C_SAGE}Press ENTER to go back${C_RESET}"
+read -p "$(echo -e "${C_GOLD}Input Username : ${C_RESET}")" user
+
+if [ -z "$user" ]; then
     menu
 else
+    # Check if user exists
+    if ! grep -q "^### $user" "/etc/xray/config.json"; then
+        echo -e "${C_TOMATO}Error: User '$user' not found!${C_RESET}"
+        sleep 2
+        menu
+        exit 0
+    fi
+
+    # Process Deletion
     exp=$(grep -wE "^### $user" "/etc/xray/config.json" | cut -d ' ' -f 3 | sort | uniq)
+    
+    # Remove from config & db
     sed -i "/^### $user $exp/,/^},{/d" /etc/xray/config.json
     sed -i "/^### $user $exp/,/^},{/d" /etc/vmess/.vmess.db
+    
+    # Remove Files
     rm -rf /etc/vmess/$user
     rm -rf /etc/hokage/limit/vmess/ip/$user
+    
+    # Restart Service
     systemctl restart xray > /dev/null 2>&1
     
-    # Send Telegram notification
+    # Send Notification
     send_deletion_notification
     
+    # Success Output
     clear
-    echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo " Succes Delete Vmess Account"
-    echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo " Client Name : $user"
-    echo " Expired On  : $exp"
-    echo -e "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo -e "${C_BURGUNDY}◇━━━━━━━━━━━━━━━━━◇${C_RESET}"
+    echo -e " ${C_TOMATO}SUCCESS DELETE VMESS${C_RESET}"
+    echo -e "${C_BURGUNDY}◇━━━━━━━━━━━━━━━━━◇${C_RESET}"
+    echo -e "${C_GOLD}Client Name   :${C_RESET} ${C_CREAM}$user${C_RESET}"
+    echo -e "${C_GOLD}Expired On    :${C_RESET} ${C_CREAM}$exp${C_RESET}"
+    echo -e "${C_GOLD}Status        :${C_RESET} ${C_SAGE}Deleted Successfully${C_RESET}"
+    echo -e "${C_BURGUNDY}◇━━━━━━━━━━━━━━━━━◇${C_RESET}"
     echo ""
+    read -n 1 -s -r -p "Press any key to back on menu"
+    menu
 fi

@@ -1,95 +1,177 @@
 #!/bin/bash
 
-# color
-Green="\e[92;1m"
-RED="\033[31m"
-YELLOW="\033[33m"
-BLUE="\033[36m"
-FONT="\033[0m"
-GREENBG="\033[42;37m"
-REDBG="\033[41;37m"
-OK="${Green}--->${FONT}"
-ERROR="${RED}[ERROR]${FONT}"
-GRAY="\e[1;30m"
-NC='\e[0m'
-red='\e[1;31m'
-green='\e[0;32m'
-purple="\e[0;33m"
-clear
+# ==========================================================
+#  TOMATO LUXE THEME ENGINE - COLOR DEFINITIONS
+# ==========================================================
+
+# 1. Palette Definition (True Color - 24bit)
+C_TOMATO="\033[38;2;217;69;57m"   # Primary Red (Merah Bata)
+C_BURGUNDY="\033[38;2;143;38;38m" # Darker Red (Border/Garis)
+C_SAGE="\033[38;2;148;180;159m"   # Green (Success/Sage)
+C_GOLD="\033[38;2;230;203;165m"   # Gold (Warning/Highlight)
+C_CREAM="\033[38;2;253;251;247m"  # Main Text (Cream lembut)
+C_RESET="\033[0m"
+
+# 2. Icons & Symbols
+ICON_TOMATO="🍅"
+ICON_LEAF="🌿"
+ICON_STAR="✨"
+ICON_ARROW="➜"
+ICON_CHECK="✔"
+ICON_CROSS="✖"
+ICON_GEAR="⚙"
+
+# 3. Variable Mapping (Compatibility with old script logic)
+# Mapping variabel lama ke palet baru agar logika script tetap jalan
+Green="${C_SAGE}"
+RED="${C_TOMATO}"
+YELLOW="${C_GOLD}"
+BLUE="${C_SAGE}"
+FONT="${C_CREAM}"
+GREENBG="\033[48;2;148;180;159m\033[38;2;0;0;0m" 
+REDBG="\033[48;2;217;69;57m\033[38;2;253;251;247m"
+GRAY="${C_BURGUNDY}"
+NC="${C_RESET}"
+red="${C_TOMATO}"
+green="${C_SAGE}"
+purple="${C_GOLD}"
+yell="${C_GOLD}"
+
+# Status Indicators
+OK="${C_SAGE}[OK]${C_RESET}"
+ERROR="${C_TOMATO}[ERROR]${C_RESET}"
+
+# ==========================================================
+#  HELPER FUNCTIONS (TAMPILAN)
+# ==========================================================
+
+function draw_header() {
+    clear
+    echo -e "${C_BURGUNDY}╔══════════════════════════════════════════════════════╗${C_RESET}"
+    echo -e "${C_BURGUNDY}║${C_RESET} ${C_SAGE}${ICON_TOMATO}  ${C_TOMATO}TOMATO AUTOSCRIPT${C_RESET} ${C_GOLD}(STABLE EDITION)${C_RESET}               ${C_BURGUNDY}║${C_RESET}"
+    echo -e "${C_BURGUNDY}╠══════════════════════════════════════════════════════╣${C_RESET}"
+    echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}${ICON_STAR} AUTHOR  : ${C_CREAM}DUDUL ( @dudulrealnofek )${C_RESET}               ${C_BURGUNDY}║${C_RESET}"
+    echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}${ICON_STAR} TEAM    : ${C_CREAM}TFNUKLIR ( @tfnuklir )${C_RESET}                  ${C_BURGUNDY}║${C_RESET}"
+    echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}${ICON_STAR} VERSION : ${C_CREAM}TOMAT MERAH V.1.1 - LTS ${C_RESET}                ${C_BURGUNDY}║${C_RESET}"
+    echo -e "${C_BURGUNDY}╚══════════════════════════════════════════════════════╝${C_RESET}"
+    echo -e ""
+    echo -e "  ${C_SAGE}${ICON_GEAR} Memulai Pengecekan System & IP Address...${C_RESET}"
+    echo -e ""
+}
+
+function draw_footer() {
+    # Hitung durasi waktu
+    local total_seconds="$(($(date +%s) - ${start}))"
+    local duration="$((total_seconds / 3600)) hours $(((total_seconds / 60) % 60)) mins"
+    
+    # Ambil info OS dan Domain terbaru
+    local os_info=$(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/PRETTY_NAME//g' | sed 's/=//g' | sed 's/"//g')
+    local final_domain=$(cat /root/domain 2>/dev/null || echo "Not Set")
+
+    echo -e ""
+    echo -e " ${C_BURGUNDY}╔══════════════════════════════════════════════════════╗${C_RESET}"
+    echo -e " ${C_BURGUNDY}║${C_RESET}      ${C_SAGE}${ICON_TOMATO}   ${C_TOMATO}INSTALLATION COMPLETED SUCCESSFULLY${C_RESET}   ${C_SAGE}${ICON_LEAF}${C_RESET}   ${C_BURGUNDY}║${C_RESET}"
+    echo -e " ${C_BURGUNDY}╠══════════════════════════════════════════════════════╣${C_RESET}"
+    echo -e " ${C_BURGUNDY}║${C_RESET}  ${C_GOLD}• OS         :${C_RESET} ${C_CREAM}${os_info}${C_RESET}"
+    echo -e " ${C_BURGUNDY}║${C_RESET}  ${C_GOLD}• IP Address :${C_RESET} ${C_CREAM}${IP}${C_RESET}"
+    echo -e " ${C_BURGUNDY}║${C_RESET}  ${C_GOLD}• Domain     :${C_RESET} ${C_CREAM}${final_domain}${C_RESET}"
+    echo -e " ${C_BURGUNDY}║${C_RESET}  ${C_GOLD}• Duration   :${C_RESET} ${C_CREAM}${duration}${C_RESET}"
+    echo -e " ${C_BURGUNDY}╠══════════════════════════════════════════════════════╣${C_RESET}"
+    echo -e " ${C_BURGUNDY}║${C_RESET}     ${C_GOLD}${ICON_STAR} Thank you for using Tomato Autoscript ${ICON_STAR}${C_RESET}      ${C_BURGUNDY}║${C_RESET}"
+    echo -e " ${C_BURGUNDY}╚══════════════════════════════════════════════════════╝${C_RESET}"
+    echo -e ""
+}
+
+function print_ok() {
+    echo -e "  ${C_SAGE}${ICON_LEAF} ${C_CREAM}$1${C_RESET}"
+}
+
+function print_install() {
+    echo -e ""
+    echo -e "${C_BURGUNDY}  ══════════════════════════════════════════════════════${C_RESET}"
+    echo -e "  ${C_TOMATO}${ICON_TOMATO}  ${C_GOLD}INSTALLING:${C_RESET} ${C_CREAM}$1${C_RESET}"
+    echo -e "${C_BURGUNDY}  ══════════════════════════════════════════════════════${C_RESET}"
+    sleep 1
+}
+
+function print_error() {
+    echo -e "  ${C_TOMATO}${ICON_CROSS} ERROR: $1${C_RESET}"
+}
+
+function print_success() {
+    if [[ 0 -eq $? ]]; then
+        echo -e "  ${C_SAGE}${ICON_CHECK} SUCCESS:${C_RESET} ${C_CREAM}$1 berhasil dipasang.${C_RESET}"
+        sleep 1
+    fi
+}
+
+# ==========================================================
+#  CORE SCRIPT LOGIC
+# ==========================================================
 
 # ip
 export IP=$( curl -sS icanhazip.com )
 
 # clear
 clear
-clear && clear && clear
-clear;clear;clear
 
-clear
 # valid script
 ipsaya=$(curl -sS ipv4.icanhazip.com)
 data_server=$(curl -v --insecure --silent https://google.com/ 2>&1 | grep Date | sed -e 's/< Date: //')
 date_list=$(date +"%Y-%m-%d" -d "$data_server")
 
-# banner
-echo -e "${YELLOW}----------------------------------------------------------${NC}"
-echo -e " › WELCOME TO TOMATO AUTOSCRIPT ${YELLOW}(${NC}${green}Stable Edition${NC}${YELLOW})${NC}"
-echo -e " › PROSES PENGECEKAN IP ADDRESS ANDA !!"
-echo -e "${purple}----------------------------------------------------------${NC}"
-echo -e " › AUTHOR : ${green}DUDUL ${NC}${YELLOW}(${NC}${green} TEA V.1.0${NC}${YELLOW})${NC}"
-echo -e " › TEAM   : TFNUKLIR ${YELLOW}(${NC} 2025 ${YELLOW})${NC}"
-echo -e "${YELLOW}----------------------------------------------------------${NC}"
-echo ""
+# Run Banner
+draw_header
 sleep 2
 
 # archi
 if [[ $( uname -m | awk '{print $1}' ) == "x86_64" ]]; then
-    echo -e "${OK} Your Architecture Is Supported ( ${green}$( uname -m )${NC} )"
+    echo -e "  ${C_SAGE}${ICON_CHECK} Architecture Supported:${C_RESET} ${C_CREAM}$( uname -m )${C_RESET}"
 else
-    echo -e "${EROR} Your Architecture Is Not Supported ( ${YELLOW}$( uname -m )${NC} )"
+    echo -e "  ${C_TOMATO}${ICON_CROSS} Architecture Not Supported:${C_RESET} ${C_GOLD}$( uname -m )${C_RESET}"
     exit 1
 fi
 
 # os
 if [[ $( cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g' ) == "ubuntu" ]]; then
-    echo -e "${OK} Your OS Is Supported ( ${green}$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g' )${NC} )"
+    echo -e "  ${C_SAGE}${ICON_CHECK} OS Supported:${C_RESET} ${C_CREAM}$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g' )${C_RESET}"
 elif [[ $( cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g' ) == "debian" ]]; then
-    echo -e "${OK} Your OS Is Supported ( ${green}$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g' )${NC} )"
+    echo -e "  ${C_SAGE}${ICON_CHECK} OS Supported:${C_RESET} ${C_CREAM}$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g' )${C_RESET}"
 else
-    echo -e "${EROR} Your OS Is Not Supported ( ${YELLOW}$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g' )${NC} )"
+    echo -e "  ${C_TOMATO}${ICON_CROSS} OS Not Supported:${C_RESET} ${C_GOLD}$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g' )${C_RESET}"
     exit 1
 fi
 
 # ip
 if [[ $IP == "" ]]; then
-    echo -e "${EROR} IP Address ( ${YELLOW}Not Detected${NC} )"
+    echo -e "  ${C_TOMATO}${ICON_CROSS} IP Address:${C_RESET} ${C_GOLD}Not Detected${C_RESET}"
 else
-    echo -e "${OK} IP Address ( ${green}$IP${NC} )"
+    echo -e "  ${C_SAGE}${ICON_CHECK} IP Address:${C_RESET} ${C_CREAM}$IP${C_RESET}"
 fi
 
 # succ
 echo ""
-read -p "$( echo -e "Press ${GRAY}[ ${NC}${green}Enter${NC} ${GRAY}]${NC} For Starting Installation") "
+echo -e "  ${C_GOLD}${ICON_ARROW} Tekan ${C_SAGE}[ENTER]${C_GOLD} untuk memulai instalasi...${C_RESET}"
+read
 echo ""
 clear
+
 if [ "${EUID}" -ne 0 ]; then
-		echo "You need to run this script as root"
-		exit 1
+        echo -e "${C_TOMATO}You need to run this script as root${C_RESET}"
+        exit 1
 fi
 if [ "$(systemd-detect-virt)" == "openvz" ]; then
-		echo "OpenVZ is not supported"
-		exit 1
+        echo -e "${C_TOMATO}OpenVZ is not supported${C_RESET}"
+        exit 1
 fi
-red='\e[1;31m'
-green='\e[0;32m'
-NC='\e[0m'
 
 # license
 MYIP=$(curl -sS ipv4.icanhazip.com)
 clear
-apt install ruby -y
-gem install lolcat
-apt install wondershaper -y
+echo -e "${C_GOLD}Preparing dependencies...${C_RESET}"
+apt install ruby -y >/dev/null 2>&1
+gem install lolcat >/dev/null 2>&1
+apt install wondershaper -y >/dev/null 2>&1
 clear
 
 # repo    
@@ -101,39 +183,18 @@ secs_to_human() {
     echo "Installation time : $((${1} / 3600)) hours $(((${1} / 60) % 60)) minute's $((${1} % 60)) seconds"
 }
 
-# stat bann
-function print_ok() {
-    echo -e "${OK} ${BLUE} $1 ${FONT}"
-}
-function print_install() {
-	echo -e "${green}=============================== ${FONT}"
-    echo -e "${YELLOW} # $1 ${FONT}"
-	echo -e "${green}=============================== ${FONT}"
-    sleep 1
-}
-function print_error() {
-    echo -e "${ERROR} ${REDBG} $1 ${FONT}"
-}
-function print_success() {
-    if [[ 0 -eq $? ]]; then
-		echo -e "${green}=============================== ${FONT}"
-        echo -e "${Green} # $1 berhasil dipasang"
-		echo -e "${green}=============================== ${FONT}"
-        sleep 2
-    fi
-}
-
 # check root
 function is_root() {
     if [[ 0 == "$UID" ]]; then
-        print_ok "Root user Start installation process"
+        print_ok "Root user detected, starting..."
     else
-        print_error "The current user is not the root user, please switch to the root user and run the script again"
+        print_error "Please run as root user."
+        exit 1
     fi
 }
 
 # make xray directory
-print_install "Membuat direktori xray"
+print_install "Konfigurasi Direktori Xray"
     mkdir -p /etc/xray
     curl -s ifconfig.me > /etc/xray/ipvps
     touch /etc/xray/domain
@@ -161,12 +222,12 @@ print_install "Membuat direktori xray"
     export Kernel=$( uname -r )
     export Arch=$( uname -m )
     export IP=$( curl -s https://ipinfo.io/ip/ )
-    print_success "Direktori Xray"
+    print_success "Direktori Xray dibuat"
     clear
 
 # change env
 function first_setup(){
-    print_install "Time Zone Set"
+    print_install "Setting Timezone & Deps"
     timedatectl set-timezone Asia/Jakarta
     echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
     echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
@@ -197,22 +258,23 @@ clear
 function nginx_install() {
     # checking system
     if [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "ubuntu" ]]; then
-        print_install "Setup nginx For OS Is $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
+        print_install "Setup Nginx (Ubuntu)"
     # install
         sudo apt-get install nginx -y 
     elif [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "debian" ]]; then
+        print_install "Setup Nginx (Debian)"
         apt -y install nginx 
     else
         echo -e " Your OS Is Not Supported ( ${YELLOW}$(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')${FONT} )"
         # exit 1
     fi
-print_success "Setup nginx For OS Is $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
+print_success "Nginx Installed"
 clear
 }
 
 # update and remove packages
 function base_package() {
-    print_install "Menginstall Paket Yang Dibutuhkan"
+    print_install "Menginstall Paket Dependencies"
     apt install zip pwgen openssl netcat socat cron bash-completion -y
     apt install figlet -y
     apt update -y
@@ -238,24 +300,24 @@ function base_package() {
     echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
     echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
     sudo apt-get install -y speedtest-cli vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-nss-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential gcc g++ python htop lsof tar wget curl ruby zip unzip p7zip-full python3-pip libc6 util-linux build-essential msmtp-mta ca-certificates bsd-mailx iptables iptables-persistent netfilter-persistent net-tools openssl ca-certificates gnupg gnupg2 ca-certificates lsb-release gcc shc make cmake git screen socat xz-utils apt-transport-https gnupg1 dnsutils cron bash-completion ntpdate chrony jq openvpn easy-rsa
-print_success "Paket Yang Dibutuhkan"
+print_success "Dependencies Selesai"
 clear
 }
 
 # add domain
 function pasang_domain() {
     echo -e ""
-    echo -e "   .----------------------------------."
-    echo -e "   |       \e[1;32mPILIH DOMAIN SILAHKAN      \e[0m|"
-    echo -e "   '----------------------------------'"
-    echo -e "     \e[1;32m1)\e[0m Menggunakan Domain Sendiri"
-    echo -e "     \e[1;32m2)\e[0m Menggunakan Domain Script"
-    echo -e "   ------------------------------------"
-    read -p "   Please select numbers 1-2 or Any Button(Random) : " host
+    echo -e "${C_BURGUNDY}  ════════════════════════════════════${C_RESET}"
+    echo -e "${C_BURGUNDY}  |${C_RESET}        ${C_SAGE}KONFIGURASI DOMAIN${C_RESET}        ${C_BURGUNDY}|${C_RESET}"
+    echo -e "${C_BURGUNDY}  ════════════════════════════════════${C_RESET}"
+    echo -e "    ${C_SAGE}1)${C_RESET} Menggunakan Domain Sendiri"
+    echo -e "    ${C_SAGE}2)${C_RESET} Menggunakan Domain Script"
+    echo -e "${C_BURGUNDY}  ════════════════════════════════════${C_RESET}"
+    read -p "    Pilih (1-2) : " host
     echo ""
     if [[ $host == "1" ]]; then
-    echo -e "   \e[1;32mPlease Enter Your Subdomain $NC"
-    read -p "   Subdomain: " host1
+    echo -e "    ${C_GOLD}Masukkan Subdomain Anda:${C_RESET}"
+    read -p "    Subdomain: " host1
     echo "IP=" >> /var/lib/kyt/ipvps.conf
     echo $host1 > /etc/xray/domain
     echo $host1 > /root/domain
@@ -274,10 +336,10 @@ clear
 function password_default() {
     domain=$(cat /root/domain)
     MYIP=$(curl -sS ipv4.icanhazip.com)
-    wget -q -O /tmp/izin "${REPO}izin"  
-    nama_buyer=$(grep -w "$MYIP" /tmp/izin | awk '{print $2}')
-    exp_buyer=$(grep -w "$MYIP" /tmp/izin | awk '{print $3}')
-    rm -f /tmp/izin
+    wget -q -O /tmp/tomato "https://raw.githubusercontent.com/dudul19/license/main/tomato"
+    nama_buyer=$(grep -w "$MYIP" /tmp/tomato | awk '{print $2}')
+    exp_buyer=$(grep -w "$MYIP" /tmp/tomato | awk '{print $3}')
+    rm -f /tmp/tomato
     if [[ -z "$nama_buyer" ]]; then
         nama_buyer="Free/Trial"
         exp_buyer="-"
@@ -337,7 +399,7 @@ chmod +x /root/.acme.sh/acme.sh
 /root/.acme.sh/acme.sh --issue -d $domain --standalone -k ec-256
 ~/.acme.sh/acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
 chmod 777 /etc/xray/xray.key
-print_success "SSL Certificate"
+print_success "SSL Certificate Installed"
 clear
 }
 
@@ -398,13 +460,13 @@ wget -O /etc/xray/config.json "${REPO}config/config.json" >/dev/null 2>&1
 wget -O /etc/systemd/system/runn.service "${REPO}files/runn.service" >/dev/null 2>&1
 domain=$(cat /etc/xray/domain)
 IPVS=$(cat /etc/xray/ipvps)
-print_success "Core Xray Stable Version"
+print_success "Core Xray Installed"
 clear
 }
     
 # Configuration HAProxy & Nginx
 function ins_nginx(){
-print_install "Memasang Nginx"
+print_install "Konfigurasi HAProxy & Nginx"
 curl -s ipinfo.io/city >>/etc/xray/city
 curl -s ipinfo.io/org | cut -d " " -f 2-10 >>/etc/xray/isp
 wget -O /etc/haproxy/haproxy.cfg "${REPO}config/haproxy.cfg" >/dev/null 2>&1
@@ -432,12 +494,12 @@ filesNOFILE=1000000
 [Install]
 WantedBy=multi-user.target
 EOF
-print_success "Nginx"
+print_success "Nginx Configured"
 clear
 }
 
 function ssh(){
-print_install "Memasang Password SSH"
+print_install "Konfigurasi Password SSH"
 wget -O /etc/pam.d/common-password "${REPO}files/password"
 chmod +x /etc/pam.d/common-password
 DEBIAN_FRONTEND=noninteractive dpkg-reconfigure keyboard-configuration
@@ -495,7 +557,7 @@ sed -i '$ i\echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6' /etc/rc.local
 ln -fs /usr/share/zoneinfo/Asia/Jakarta /etc/localtime
 # set locale
 sed -i 's/AcceptEnv/#AcceptEnv/g' /etc/ssh/sshd_config
-print_success "Password SSH"
+print_success "Password SSH Set"
 clear
 }
 
@@ -569,17 +631,17 @@ systemctl disable udp-mini-3
 systemctl stop udp-mini-3
 systemctl enable udp-mini-3
 systemctl start udp-mini-3
-print_success "Limit IP Service"
+print_success "Limit IP Service Installed"
 clear
 }
 
 function ssh_slow(){
 # // Installing UDP Mini
-print_install "Memasang modul SlowDNS Server"
+print_install "Memasang Modul SlowDNS Server"
 wget -q -O /tmp/nameserver "${REPO}files/nameserver" >/dev/null 2>&1
 chmod +x /tmp/nameserver
 bash /tmp/nameserver | tee /root/install.log
-print_success "SlowDNS"
+print_success "SlowDNS Installed"
 clear
 }
 
@@ -590,7 +652,7 @@ chmod 700 /etc/ssh/sshd_config
 /etc/init.d/ssh restart
 systemctl restart ssh
 /etc/init.d/ssh status
-print_success "SSHD"
+print_success "SSHD Configured"
 clear
 }
 
@@ -605,15 +667,8 @@ chmod +x /etc/default/dropbear
 systemctl daemon-reload > /dev/null 2>&1
 systemctl enable dropbear > /dev/null 2>&1
 systemctl restart dropbear > /dev/null 2>&1
-print_success "Dropbear"
+print_success "Dropbear Installed"
 clear
-#print_install "Menginstall Dropbear"
-#apt-get install dropbear -y > /dev/null 2>&1
-#wget -q -O /etc/default/dropbear "${REPO}config/dropbear.conf"
-#chmod +x /etc/default/dropbear
-#/etc/init.d/dropbear restart
-#/etc/init.d/dropbear status
-#print_success "Dropbear"
 }
 
 function ins_udpSSH(){
@@ -622,7 +677,7 @@ wget -q ${REPO}udp-custom/udp-custom.sh
 chmod +x udp-custom.sh 
 bash udp-custom.sh
 rm -fr udp-custom.sh
-print_success "Udp-custom"
+print_success "Udp-custom Installed"
 clear
 }
 
@@ -645,7 +700,7 @@ systemctl enable vnstat
 /etc/init.d/vnstat status
 rm -f /root/vnstat-2.6.tar.gz
 rm -rf /root/vnstat-2.6
-print_success "Vnstat"
+print_success "Vnstat Installed"
 clear
 }
 
@@ -654,7 +709,7 @@ print_install "Menginstall OpenVPN"
 #OpenVPN
 wget ${REPO}openvpn && chmod +x openvpn && ./openvpn
 /etc/init.d/openvpn restart
-print_success "OpenVPN"
+print_success "OpenVPN Installed"
 clear
 }
 
@@ -690,12 +745,12 @@ logfile ~/.msmtp.log
 EOF
 chown -R www-data:www-data /etc/msmtprc
 wget -q -O /etc/ipserver "${REPO}files/ipserver" && bash /etc/ipserver
-print_success "Backup Server"
+print_success "Backup Server Configured"
 clear
 }
 
 function ins_swab(){
-print_install "Memasang Swap 1 G"
+print_install "Memasang Swap 1 GB"
 gotop_latest="$(curl -s https://api.github.com/repos/xxxserxxx/gotop/releases | grep tag_name | sed -E 's/.*"v(.*)".*/\1/' | head -n 1)"
 gotop_link="https://github.com/xxxserxxx/gotop/releases/download/v$gotop_latest/gotop_v"$gotop_latest"_linux_amd64.deb"
 curl -sL "$gotop_link" -o /tmp/gotop.deb
@@ -715,23 +770,23 @@ chronyc sourcestats -v
 chronyc tracking -v
     
 wget ${REPO}files/bbr.sh &&  chmod +x bbr.sh && ./bbr.sh
-print_success "Swap 1 G"
+print_success "Swap 1 GB Active"
 clear
 }
 
 function ins_Fail2ban(){
 print_install "Menginstall Fail2ban"
-#apt -y install fail2ban > /dev/null 2>&1
-#sudo systemctl enable --now fail2ban
-#/etc/init.d/fail2ban restart
-#/etc/init.d/fail2ban status
+apt -y install fail2ban > /dev/null 2>&1
+sudo systemctl enable --now fail2ban
+/etc/init.d/fail2ban restart
+/etc/init.d/fail2ban status
 
 # Instal DDOS Flate
 if [ -d '/usr/local/ddos' ]; then
-	echo; echo; echo "Please un-install the previous version first"
-	exit 0
+    echo; echo; echo "Please un-install the previous version first"
+    exit 0
 else
-	mkdir /usr/local/ddos
+    mkdir /usr/local/ddos
 fi
 
 clear
@@ -741,7 +796,7 @@ sed -i 's@DROPBEAR_BANNER=""@DROPBEAR_BANNER="/etc/kyt.txt"@g' /etc/default/drop
 
 # Ganti Banner
 wget -O /etc/kyt.txt ${REPO}files/issue.net
-print_success "Fail2ban"
+print_success "Fail2ban Installed"
 clear
 }
 
@@ -782,12 +837,12 @@ netfilter-persistent reload
 cd
 apt autoclean -y >/dev/null 2>&1
 apt autoremove -y >/dev/null 2>&1
-print_success "ePro WebSocket Proxy"
+print_success "ePro WebSocket Installed"
 clear
 }
 
 function ins_restart(){
-print_install "Restarting  All Packet"
+print_install "Restarting All Services"
 /etc/init.d/nginx restart
 /etc/init.d/openvpn restart
 /etc/init.d/ssh restart
@@ -814,7 +869,7 @@ cd
 rm -f /root/openvpn
 rm -f /root/key.pem
 rm -f /root/cert.pem
-print_success "All Packet"
+print_success "All Services Restarted"
 clear
 }
 
@@ -842,54 +897,66 @@ fi
 mesg n || true
 menu
 EOF
+
 mkdir -p /root/.info
 curl -sS "ipinfo.io/org?token=7a814b6263b02c" > /root/.info/.isp
-cat >/etc/cron.d/xp_all <<-END
-		SHELL=/bin/sh
-		PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-		2 0 * * * root /usr/local/sbin/xp
-                2 0 * * * root /usr/local/sbin/menu
-	END
-	cat >/etc/cron.d/logclean <<-END
-		SHELL=/bin/sh
-		PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-		*/20 * * * * root /usr/local/sbin/clearlog
-		END
-    chmod 644 /root/.profile
-	
-    cat >/etc/cron.d/daily_reboot <<-END
-		SHELL=/bin/sh
-		PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-		0 5 * * * root /sbin/reboot
-	END
-	cat >/etc/cron.d/ssh_accountant <<-END
-		SHELL=/bin/sh
-		PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-		* * * * * root /usr/local/sbin/ssh-accountant
-	END
-    cat >/etc/cron.d/limit_ip <<-END
-		SHELL=/bin/sh
-		PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-		*/2 * * * * root /usr/local/sbin/limit-ip
-        END
-    cat >/etc/cron.d/lim-ip-ssh <<-END
-		SHELL=/bin/sh
-		PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-		*/1 * * * * root /usr/local/sbin/limit-ip-ssh
-	END
-    cat >/etc/cron.d/limit_ip2 <<-END
-		SHELL=/bin/sh
-		PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-		*/2 * * * * root /usr/bin/limit-ip
-	END
-    echo "*/1 * * * * root echo -n > /var/log/nginx/access.log" >/etc/cron.d/log.nginx
-    echo "*/1 * * * * root echo -n > /var/log/xray/access.log" >>/etc/cron.d/log.xray
-    service cron restart
-    chmod 644 /etc/ssh/usage_db/
-    cat >/home/daily_reboot <<-END
-		5
-	END
+
+cat >/etc/cron.d/xp_all <<END
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+2 0 * * * root /usr/local/sbin/xp
+2 0 * * * root /usr/local/sbin/menu
+END
+
+cat >/etc/cron.d/logclean <<END
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+*/20 * * * * root /usr/local/sbin/clearlog
+END
+
+chmod 644 /root/.profile
+
+cat >/etc/cron.d/daily_reboot <<END
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+0 5 * * * root /sbin/reboot
+END
+
+cat >/etc/cron.d/ssh_accountant <<END
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+* * * * * root /usr/local/sbin/ssh-accountant
+END
+
+cat >/etc/cron.d/limit_ip <<END
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+*/2 * * * * root /usr/local/sbin/limit-ip
+END
+
+cat >/etc/cron.d/lim-ip-ssh <<END
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+*/1 * * * * root /usr/local/sbin/limit-ip-ssh
+END
+
+cat >/etc/cron.d/limit_ip2 <<END
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+*/2 * * * * root /usr/bin/limit-ip
+END
+
+echo "*/1 * * * * root echo -n > /var/log/nginx/access.log" >/etc/cron.d/log.nginx
+echo "*/1 * * * * root echo -n > /var/log/xray/access.log" >>/etc/cron.d/log.xray
+service cron restart
+chmod 644 /etc/ssh/usage_db/
+
+cat >/home/daily_reboot <<END
+5
+END
+
 curl -sS "ipinfo.io/city?token=7a814b6263b02c" > /root/.info/.city
+
 cat >/etc/systemd/system/rc-local.service <<EOF
 [Unit]
 Description=/etc/rc.local
@@ -907,6 +974,7 @@ EOF
 
 echo "/bin/false" >>/etc/shells
 echo "/usr/sbin/nologin" >>/etc/shells
+
 cat >/etc/rc.local <<EOF
 #!/bin/sh -e
 # rc.local
@@ -917,22 +985,22 @@ systemctl restart netfilter-persistent
 exit 0
 EOF
 
-    chmod +x /etc/rc.local
-    
-    AUTOREB=$(cat /home/daily_reboot)
-    SETT=11
-    if [ $AUTOREB -gt $SETT ]; then
-        TIME_DATE="PM"
-    else
-        TIME_DATE="AM"
-    fi
-print_success "Menu Packet"
+chmod +x /etc/rc.local
+
+AUTOREB=$(cat /home/daily_reboot)
+SETT=11
+if [ $AUTOREB -gt $SETT ]; then
+    TIME_DATE="PM"
+else
+    TIME_DATE="AM"
+fi
+print_success "Menu Packet Installed"
 clear
 }
 
 # Restart layanan after install
 function enable_services(){
-print_install "Enable Service"
+print_install "Enable All Services"
 systemctl daemon-reload
 systemctl start netfilter-persistent
 systemctl enable --now rc-local
@@ -942,7 +1010,7 @@ systemctl restart nginx
 systemctl restart xray
 systemctl restart cron
 systemctl restart haproxy
-print_success "Enable Service"
+print_success "Services Enabled"
 clear
 }
 
@@ -960,7 +1028,7 @@ ins_nginx
 ssh
 udp_mini
 ssh_slow
-ins_udpSSH
+#ins_udpSSH
 ins_SSHD
 ins_dropbear
 ins_vnstat
@@ -973,24 +1041,44 @@ ins_restart
 menu
 profile
 enable_services
-restart_system
+# restart_system <-- Dihapus karena akan ditangani manual di bawah
 clear
 }
 
+# --- MAIN EXECUTION ---
+
 instal
+
+# Cleanup
 echo ""
+print_install "Cleaning Up Installation Files"
 history -c
 rm -rf /root/menu
 rm -rf /root/*.zip
 rm -rf /root/*.sh
 rm -rf /root/LICENSE
 rm -rf /root/README.md
-rm -rf /root/domain
-#sudo hostnamectl set-hostname $user
-secs_to_human "$(($(date +%s) - ${start}))"
-sudo hostnamectl set-hostname $username
-echo ""
-echo "Semuanya Berjalan Ok...Terimakasih Telah menggunakan Tomato Autoscript!!"
+# rm -rf /root/domain  <-- Domain dipertahankan sementara untuk banner
+
+print_success "Cleanup Done"
 sleep 1
-echo -ne "[ ${yell}COMPLETED${NC} ] PENGINSTALAN SCRIPT SELESAI? "
+clear
+
+# Display Footer Box
+draw_footer
+
+# Countdown & Reboot
+echo -ne "  ${C_SAGE}[${C_GOLD} SYSTEM ${C_SAGE}]${C_CREAM} Server will reboot in 5 seconds... ${C_RESET}"
+sleep 1
+echo -ne "${C_GOLD}4... ${C_RESET}"
+sleep 1
+echo -ne "${C_GOLD}3... ${C_RESET}"
+sleep 1
+echo -ne "${C_TOMATO}2... ${C_RESET}"
+sleep 1
+echo -ne "${C_TOMATO}1... ${C_RESET}"
+sleep 1
+
+# Hapus domain sesaat sebelum reboot
+rm -rf /root/domain
 reboot

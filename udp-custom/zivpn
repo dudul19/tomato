@@ -1,0 +1,189 @@
+#!/bin/bash
+
+# ==========================================================
+#  TOMATO LUXE THEME ENGINE - ZIVPN INSTALLER
+# ==========================================================
+
+# 1. Palette Definition (True Color)
+C_TOMATO="\033[38;2;217;69;57m"   # Primary Red
+C_BURGUNDY="\033[38;2;143;38;38m" # Border Red
+C_SAGE="\033[38;2;148;180;159m"   # Success Green
+C_GOLD="\033[38;2;230;203;165m"   # Warning/Highlight
+C_CREAM="\033[38;2;253;251;247m"  # Text
+C_RESET="\033[0m"
+
+# 2. Icons
+ICON_TOMATO="🍅"
+ICON_ZIVPN="⚡"
+ICON_GEAR="⚙"
+ICON_CHECK="✔"
+ICON_TRASH="🗑️"
+ICON_DL="📥"
+ICON_DB="🗃️"
+ICON_TIME="⏳"
+ICON_STAR="✨"
+
+# ==========================================================
+#  UI FUNCTIONS
+# ==========================================================
+
+draw_header() {
+    clear
+    echo -e "${C_BURGUNDY}╔══════════════════════════════════════════════════════╗${C_RESET}"
+    echo -e "${C_BURGUNDY}║${C_RESET} ${C_SAGE}       ${ICON_TOMATO}  ${C_TOMATO}TOMATO INSTALLER${C_RESET} ${C_GOLD}(ZIVPN ULTIMATE)${C_RESET}         ${C_BURGUNDY}║${C_RESET}"
+    echo -e "${C_BURGUNDY}╠══════════════════════════════════════════════════════╣${C_RESET}"
+    echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}${ICON_STAR} AUTHOR   : ${C_CREAM}@dudulrealnofek ${C_RESET}                       ${C_BURGUNDY}║${C_RESET}"
+    echo -e "${C_BURGUNDY}║${C_RESET} ${C_SAGE}${ICON_ZIVPN} VERSION  : ${C_CREAM}Tomat Merah V.1.1 - LTS${C_RESET}                ${C_BURGUNDY}║${C_RESET}"
+    echo -e "${C_BURGUNDY}╚══════════════════════════════════════════════════════╝${C_RESET}"
+    echo -e ""
+}
+
+print_step() {
+    echo -e "  ${C_GOLD}${ICON_GEAR} $1...${C_RESET}"
+    sleep 0.5
+}
+
+print_success() {
+    echo -e "  ${C_SAGE}${ICON_CHECK} $1${C_RESET}"
+    sleep 0.3
+}
+
+# ==========================================================
+#  INSTALLATION PROCESS
+# ==========================================================
+
+draw_header
+
+# --- 1. PRE-INSTALL (CLEANUP) ---
+echo -e "${C_BURGUNDY}  .----------------------------------------------------.${C_RESET}"
+echo -e "${C_BURGUNDY}  |${C_RESET}               ${C_GOLD}PREPARING ENVIRONMENT${C_RESET}                  ${C_BURGUNDY}|${C_RESET}"
+echo -e "${C_BURGUNDY}  '----------------------------------------------------'${C_RESET}"
+
+print_step "Checking existing installation"
+if [[ -f /etc/systemd/system/zivpn.service ]] || [[ -d /etc/zivpn ]]; then
+    systemctl stop zivpn >/dev/null 2>&1
+    systemctl disable zivpn >/dev/null 2>&1
+    
+    rm -f /etc/systemd/system/zivpn.service
+    rm -rf /etc/zivpn
+    rm -f /usr/local/sbin/zivpn-menu
+    rm -f /usr/local/sbin/xp-zivpn
+    # Limit quota file is preserved as per request
+    
+    # Clean Cron
+    if [ -f /var/spool/cron/crontabs/root ]; then
+        sed -i '/xp-zivpn/d' /var/spool/cron/crontabs/root
+        sed -i '/limit-quota/d' /var/spool/cron/crontabs/root
+    fi
+    systemctl daemon-reload
+    print_success "Cleanup completed (Limit Quota preserved)"
+else
+    print_success "Fresh installation detected"
+fi
+
+# --- 2. INSTALL CORE ZIVPN ---
+print_step "Downloading ZiVPN Core"
+wget -q -O zivpn-installer.sh https://raw.githubusercontent.com/dudul19/tomato/main/udp-custom/zivpn-installer.sh
+chmod +x zivpn-installer.sh
+./zivpn-installer.sh > /dev/null 2>&1
+rm -f zivpn-installer.sh
+print_success "Core installed successfully"
+
+# --- 3. DATABASE SETUP ---
+print_step "Initializing Database"
+mkdir -p /etc/zivpn
+if [ ! -f "/etc/zivpn/user-db.json" ]; then
+    echo "{}" > /etc/zivpn/user-db.json
+fi
+apt-get update -y >/dev/null 2>&1
+apt-get install -y jq curl net-tools cron bc >/dev/null 2>&1
+print_success "Database initialized"
+
+# --- 4. CREATE XP SCRIPT (AUTO DELETE) ---
+print_step "Installing Auto-Delete (XP)"
+cat <<'EOF' > /usr/local/sbin/xp-zivpn
+#!/bin/bash
+CONFIG_FILE="/etc/zivpn/config.json"
+USER_DB="/etc/zivpn/user-db.json"
+SERVICE_NAME="zivpn.service"
+now_sec=$(date +%s)
+
+if [[ ! -f "$USER_DB" || ! -f "$CONFIG_FILE" ]]; then exit 0; fi
+RESTART_REQUIRED=false
+
+# Cek user expired
+jq -r 'to_entries[] | "\(.key)|\(.value.exp)"' "$USER_DB" | while IFS='|' read -r username exp_date; do
+    if [[ "$exp_date" == "null" || -z "$exp_date" ]]; then continue; fi
+    exp_sec=$(date -d "$exp_date" +%s 2>/dev/null)
+    if [[ $? -ne 0 ]]; then continue; fi
+    
+    if [[ $exp_sec -lt $now_sec ]]; then
+        # Hapus user dari Config & Database
+        jq --arg u "$username" '.auth.config -= [$u]' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+        jq --arg u "$username" 'del(.[$u])' "$USER_DB" > "${USER_DB}.tmp" && mv "${USER_DB}.tmp" "$USER_DB"
+        RESTART_REQUIRED=true
+        echo "$(date): User $username EXPIRED and deleted." >> /var/log/zivpn-xp.log
+    fi
+done
+
+if [ "$RESTART_REQUIRED" = true ]; then systemctl restart "$SERVICE_NAME"; fi
+EOF
+chmod +x /usr/local/sbin/xp-zivpn
+print_success "XP Script installed"
+
+# --- 5. CONFIG LIMIT QUOTA ---
+print_step "Configuring Limit Quota"
+if [ -f "/usr/local/sbin/limit-quota" ]; then
+    chmod +x /usr/local/sbin/limit-quota
+    print_success "Existing Limit-Quota script found"
+else
+    # Auto-create empty placeholder to avoid errors if missing
+    cat <<'EOF' > /usr/local/sbin/limit-quota
+#!/bin/bash
+# Placeholder for Limit Quota
+exit 0
+EOF
+    chmod +x /usr/local/sbin/limit-quota
+    echo -e "  ${C_GOLD}${ICON_CHECK} Created placeholder Limit-Quota script.${C_RESET}"
+fi
+
+# --- 6. CRONJOB SETUP ---
+print_step "Setting up Automation (Cron)"
+sed -i '/xp-zivpn/d' /var/spool/cron/crontabs/root
+sed -i '/limit-quota/d' /var/spool/cron/crontabs/root
+
+echo "0 0 * * * /usr/local/sbin/xp-zivpn >> /var/log/xp-zivpn.log 2>&1" >> /var/spool/cron/crontabs/root
+echo "*/5 * * * * /usr/local/sbin/limit-quota >> /dev/null 2>&1" >> /var/spool/cron/crontabs/root
+
+service cron restart >/dev/null 2>&1
+print_success "Cron jobs active"
+
+# --- 7. FINALIZATION & FIX UDP ---
+print_step "Optimizing & Restarting Services"
+PORT_ZIVPN=$(grep -o '"listen": *"[^"]*"' /etc/zivpn/config.json | cut -d'"' -f4 | sed 's/://g' | sed 's/0.0.0.0//g')
+[ -z "$PORT_ZIVPN" ] && PORT_ZIVPN="5667"
+
+if [ -f "/etc/systemd/system/udp-custom.service" ]; then
+    sed -i "s|server -exclude .*|server -exclude 22,53,68,$PORT_ZIVPN|g" /etc/systemd/system/udp-custom.service
+    systemctl daemon-reload
+    systemctl restart udp-custom
+fi
+print_success "Optimization complete"
+
+# --- FINAL OUTPUT ---
+clear
+echo -e "${C_BURGUNDY}╔══════════════════════════════════════════════════════╗${C_RESET}"
+echo -e "${C_BURGUNDY}║${C_RESET} ${C_SAGE}      ${ICON_CHECK}       ${C_TOMATO}INSTALLATION COMPLETED${C_RESET}       ${C_SAGE}${ICON_ZIVPN}${C_RESET}          ${C_BURGUNDY}║${C_RESET}"
+echo -e "${C_BURGUNDY}╠══════════════════════════════════════════════════════╣${C_RESET}"
+echo -e "${C_BURGUNDY}║${C_RESET}                   ${C_GOLD}SERVICE STATUS${C_RESET}                     ${C_BURGUNDY}║${C_RESET}"
+echo -e "${C_BURGUNDY}╠══════════════════════════════════════════════════════╣${C_RESET}"
+printf "${C_BURGUNDY}║${C_RESET} ${C_CREAM}%-15s${C_RESET} : ${C_SAGE}%-32s${C_RESET}   ${C_BURGUNDY}║${C_RESET}\n" "ZiVPN Core" "Running (Port $PORT_ZIVPN)"
+printf "${C_BURGUNDY}║${C_RESET} ${C_CREAM}%-15s${C_RESET} : ${C_SAGE}%-32s${C_RESET}   ${C_BURGUNDY}║${C_RESET}\n" "UDP Custom" "Running"
+printf "${C_BURGUNDY}║${C_RESET} ${C_CREAM}%-15s${C_RESET} : ${C_GOLD}%-32s${C_RESET}   ${C_BURGUNDY}║${C_RESET}\n" "Auto XP" "Active (00:00)"
+printf "${C_BURGUNDY}║${C_RESET} ${C_CREAM}%-15s${C_RESET} : ${C_GOLD}%-32s${C_RESET}   ${C_BURGUNDY}║${C_RESET}\n" "Auto Limit" "Active (5 Mins)"
+echo -e "${C_BURGUNDY}╠══════════════════════════════════════════════════════╣${C_RESET}"
+echo -e "${C_BURGUNDY}║${C_RESET} ${C_TOMATO}NOTE:${C_RESET} ${C_CREAM}Type 'zivpn-menu' to manage users.${C_RESET}             ${C_BURGUNDY}║${C_RESET}"
+echo -e "${C_BURGUNDY}╚══════════════════════════════════════════════════════╝${C_RESET}"
+
+echo -e ""
+rm -f "$0"

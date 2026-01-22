@@ -1,133 +1,142 @@
 #!/bin/bash
 
-# ==================================================
-#           PERSIAPAN & DEPENDENSI
-# ==================================================
+# ==========================================================
+#  TOMATO LUXE THEME ENGINE - BOT UPDATE
+# ==========================================================
 
-# Pastikan tool dasar terinstall
-apt-get install ruby zip unzip wget -y > /dev/null 2>&1
-if ! command -v lolcat &> /dev/null; then
-    gem install lolcat &> /dev/null
+# 1. Palette Definition (True Color)
+C_TOMATO="\033[38;2;217;69;57m"   # Primary Red
+C_BURGUNDY="\033[38;2;143;38;38m" # Border Red
+C_SAGE="\033[38;2;148;180;159m"   # Success Green
+C_GOLD="\033[38;2;230;203;165m"   # Warning/Highlight
+C_CREAM="\033[38;2;253;251;247m"  # Text
+C_RESET="\033[0m"
+
+# 2. Icons
+ICON_BOT="🤖"
+ICON_DL="📥"
+ICON_INSTALL="📦"
+ICON_FIX="🛠️"
+ICON_CHECK="✔"
+ICON_STOP="🛑"
+ICON_START="🚀"
+ICON_STAR="✨"
+
+# 3. Source Config
+REPO_ROOT="https://raw.githubusercontent.com/dudul19/tomato/main/bot"
+DIR_MODULES="/usr/bin/kyt/modules"
+DIR_SHELL="/usr/bin/kyt/shell"
+
+# ==========================================================
+#  UI FUNCTIONS
+# ==========================================================
+
+draw_header() {
+    clear
+    echo -e "${C_BURGUNDY}╔══════════════════════════════════════════════════════╗${C_RESET}"
+    echo -e "${C_BURGUNDY}║${C_RESET} ${C_SAGE}        ${ICON_BOT}  ${C_TOMATO}TOMATO MANAGER${C_RESET} ${C_GOLD}(BOT TELEGRAM)${C_RESET}            ${C_BURGUNDY}║${C_RESET}"
+    echo -e "${C_BURGUNDY}╠══════════════════════════════════════════════════════╣${C_RESET}"
+    echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}${ICON_STAR} AUTHOR   : ${C_CREAM}@dudulrealnofek ${C_RESET}                       ${C_BURGUNDY}║${C_RESET}"
+    echo -e "${C_BURGUNDY}║${C_RESET} ${C_SAGE}${ICON_ROCKET} VERSION  : ${C_CREAM}Tomat Merah V.1.1 - LTS${C_RESET}                ${C_BURGUNDY}║${C_RESET}"
+    echo -e "${C_BURGUNDY}╚══════════════════════════════════════════════════════╝${C_RESET}"
+    echo -e ""
+}
+
+print_step() {
+    echo -e "  ${C_GOLD}$1 ${C_CREAM}$2...${C_RESET}"
+    sleep 0.5
+}
+
+print_success() {
+    echo -e "  ${C_SAGE}${ICON_CHECK} $1${C_RESET}"
+    sleep 0.3
+}
+
+# ==========================================================
+#  MAIN LOGIC
+# ==========================================================
+
+draw_header
+
+# 1. STOP SERVICE
+echo -e "${C_BURGUNDY}  .----------------------------------------------------.${C_RESET}"
+echo -e "${C_BURGUNDY}  |${C_RESET}                 ${C_GOLD}STARTING UPDATE${C_RESET}                    ${C_BURGUNDY}|${C_RESET}"
+echo -e "${C_BURGUNDY}  '----------------------------------------------------'${C_RESET}"
+
+print_step "${ICON_STOP}" "Stopping Bot Service"
+systemctl stop kyt > /dev/null 2>&1
+
+# 2. UPDATE MODULES
+print_step "${ICON_DL}" "Updating Modules"
+rm -rf "$DIR_MODULES"
+mkdir -p "$DIR_MODULES"
+cd /tmp
+wget -q -O modules.zip "${REPO_ROOT}/modules.zip"
+
+if [[ -f modules.zip ]]; then
+    unzip -o modules.zip > /dev/null 2>&1
+    # Smart Move: Cek apakah hasil unzip ada folder 'modules' atau flat file
+    if [ -d "modules" ]; then
+        mv modules/* "$DIR_MODULES/"
+    else
+        # Jika flat file (langsung isi) atau struktur berbeda, copy yang relevan
+        # Asumsi: jika tidak ada folder modules, file ada di root unzip
+        mv *.py "$DIR_MODULES/" 2>/dev/null
+        mv *.sh "$DIR_MODULES/" 2>/dev/null
+    fi
+    rm -rf modules modules.zip
+    print_success "Modules Updated"
+else
+    echo -e "  ${C_TOMATO}Error: Download modules failed.${C_RESET}"
 fi
 
-clear
+# 3. UPDATE SHELL (SCRIPTS)
+print_step "${ICON_DL}" "Updating Shell Scripts"
+rm -rf "$DIR_SHELL"
+mkdir -p "$DIR_SHELL"
+cd /tmp
+wget -q -O shell.zip "${REPO_ROOT}/shell.zip"
 
-# ==================================================
-#           FUNGSI ANIMASI LOADING
-# ==================================================
-fun_bar() {
-    CMD="$1"
-    
-    # Menjalankan perintah update di background
-    (
-        [[ -e $HOME/fim ]] && rm $HOME/fim
-        $CMD >/dev/null 2>&1
-        touch $HOME/fim
-    ) >/dev/null 2>&1 &
-
-    # Memulai Animasi
-    tput civis # Sembunyikan kursor
-    echo -ne "  \033[0;33mSedang Memproses Update \033[1;37m- \033[0;33m["
-    
-    while true; do
-        for ((i = 0; i < 18; i++)); do
-            echo -ne "\033[0;32m#"
-            sleep 0.1s
-        done
-        
-        # Cek jika proses selesai
-        if [[ -e $HOME/fim ]]; then
-            rm $HOME/fim
-            break
-        fi
-        
-        # Reset baris loading jika belum selesai
-        echo -e "\033[0;33m]"
-        sleep 1s
-        tput cuu1
-        tput dl1
-        echo -ne "  \033[0;33mSedang Memproses Update \033[1;37m- \033[0;33m["
-    done
-    
-    # Tampilan Selesai
-    echo -e "\033[0;33m]\033[1;37m -\033[1;32m SUKSES !\033[1;37m"
-    tput cnorm # Tampilkan kursor kembali
-}
-
-# ==================================================
-#           FUNGSI UPDATE UTAMA
-# ==================================================
-res1() {
-    # Hentikan service dulu agar file tidak terkunci
-    systemctl stop kyt
-
-    # --- 1. UPDATE MODULES ---
-    rm -rf /usr/bin/kyt/modules
-    mkdir -p /usr/bin/kyt/modules
-    
-    # Download Modules (Menggunakan URL RAW yang benar)
-    wget -q -O modules.zip "https://raw.githubusercontent.com/dudul19/tomato/main/bot/modules.zip"
-    unzip -o modules.zip > /dev/null 2>&1
-    
-    # Cek apakah hasil unzip membuat folder 'modules' atau flat file
-    if [ -d "modules" ]; then
-        chmod +x modules/*
-        mv modules/* /usr/bin/kyt/modules/
-        rm -rf modules
-    else
-        # Jika zip tidak ada foldernya (flat), pindahkan file hasil unzip langsung
-        # (Opsional: sesuaikan jika struktur zip berbeda)
-        echo "Zip structure check..." 
-    fi
-    rm -f modules.zip
-    
-    # --- 2. UPDATE SHELL ---
-    rm -rf /usr/bin/kyt/shell
-    mkdir -p /usr/bin/kyt/shell
-    
-    # Download Shell
-    wget -q -O shell.zip "https://raw.githubusercontent.com/dudul19/tomato/main/bot/shell.zip"
+if [[ -f shell.zip ]]; then
     unzip -o shell.zip > /dev/null 2>&1
-    
     if [ -d "shell" ]; then
-        chmod +x shell/*
-        # PERBAIKAN DI SINI: Memindahkan 'shell', bukan 'modules' lagi
-        mv shell/* /usr/bin/kyt/shell/
-        rm -rf shell
+        mv shell/* "$DIR_SHELL/"
+    else
+        mv *.sh "$DIR_SHELL/" 2>/dev/null
     fi
-    rm -f shell.zip
-    chmod +x -R /usr/bin/kyt/shell/
-    chmod +x -R /usr/bin/kyt/modules/
-    sed -i 's/\r$//' /usr/bin/kyt/shell/bot/bot-shadowsocks-detail
-    sed -i 's/\r$//' /usr/bin/kyt/shell/bot/bot-vless-detail
-    sed -i 's/\r$//' /usr/bin/kyt/shell/bot/bot-vmess-detail
-    sed -i 's/\r$//' /usr/bin/kyt/shell/bot/bot-trojan-detail
-    # --- 3. RESTART SERVICE ---
-    systemctl enable kyt
-    systemctl restart kyt
-    chmod +x -R /usr/bin/kyt/shell/
-    chmod +x -R /usr/bin/kyt/modules/
-}
+    rm -rf shell shell.zip
+    print_success "Shell Scripts Updated"
+else
+    echo -e "  ${C_TOMATO}Error: Download shell failed.${C_RESET}"
+fi
 
-# ==================================================
-#           EKSEKUSI MENU
-# ==================================================
+# 4. PERMISSIONS & FIX (DOS2UNIX)
+print_step "${ICON_FIX}" "Normalizing File Permissions"
 
-# Hapus file update-bot lama agar bersih
-rm -rf update-bot
+chmod +x -R "$DIR_SHELL"
+chmod +x -R "$DIR_MODULES"
 
-echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | lolcat
-echo -e " \e[1;97;101m UPDATE BOT TELEGRAM  !              \e[0m"
-echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | lolcat
+# Universal Fixer: Memperbaiki semua file di folder kyt dari error ^M (Windows format)
+find /usr/bin/kyt/ -type f -exec sed -i 's/\r$//' {} \;
+
+print_success "System Normalized"
+
+# 5. RESTART SERVICE
+print_step "${ICON_START}" "Restarting Bot Service"
+systemctl enable kyt > /dev/null 2>&1
+systemctl restart kyt > /dev/null 2>&1
+
+# ==========================================================
+#  COMPLETION
+# ==========================================================
+
 echo -e ""
-echo -e "  \033[1;91m Update Script Service & Menu\033[1;37m"
-
-# Jalankan fungsi update dengan loading bar
-fun_bar 'res1'
-
-echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | lolcat
+echo -e "${C_BURGUNDY}╔══════════════════════════════════════════════════════╗${C_RESET}"
+echo -e "${C_BURGUNDY}║${C_RESET} ${C_SAGE}   ${ICON_CHECK}       ${C_TOMATO}BOT UPDATE COMPLETED SUCCESSFULLY${C_RESET}    ${C_SAGE}${ICON_BOT}${C_RESET}   ${C_BURGUNDY}║${C_RESET}"
+echo -e "${C_BURGUNDY}╚══════════════════════════════════════════════════════╝${C_RESET}"
 echo -e ""
-echo -e " \033[1;32m Update Selesai! Cek Bot /start.\033[0m"
+echo -e "  ${C_SAGE}Check your bot status using /start${C_RESET}"
 echo -e ""
-read -n 1 -s -r -p "Tekan [ Enter ] untuk kembali ke menu"
+rm -f update-bot
+read -n 1 -s -r -p "Press any key to return to menu..."
 menu

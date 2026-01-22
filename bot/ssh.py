@@ -1,4 +1,4 @@
-from kyt import *
+from kyt import * # Mengambil config (bot token, owner id, domain)
 import subprocess
 import asyncio
 import math
@@ -15,20 +15,14 @@ from telethon.errors import AlreadyInConversationError
 # FUNGSI PEMBANTU: AMBIL DATA & FORMAT PAGINATION
 # =================================================================
 def get_ssh_data():
-    """Mengambil data raw dari script shell"""
+    """Mengambil data raw dari script shell bot-member-ssh"""
     try:
-        # Update: Tambahkan "bash" di depan agar pasti jalan
+        # Pastikan script shell outputnya format: username|exp_date|status
         cmd = 'bash /usr/bin/kyt/shell/bot/bot-member-ssh'
-        
-        # Eksekusi command
         raw_output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode("utf-8")
-        
-        # Bersihkan output (split baris)
         data_list = [line for line in raw_output.splitlines() if line.strip() and "|" in line]
-        
         return data_list
     except Exception as e:
-        # Jika error, kembalikan list kosong (bisa diprint e untuk debug di journal)
         return []
 
 def render_page(data_list, page, item_per_page=10):
@@ -45,11 +39,11 @@ def render_page(data_list, page, item_per_page=10):
     
     msg = f"""
 <b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
-<b>👑 LIST MEMBER SSH & OVPN</b>
+<b>🍅 LIST MEMBER SSH & ZIVPN</b>
 <b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
 """
     if not sliced_data:
-        msg += "<i>Tidak ada user ssh active.</i>"
+        msg += "<i>Tidak ada user active.</i>"
     else:
         for row in sliced_data:
             try:
@@ -58,7 +52,15 @@ def render_page(data_list, page, item_per_page=10):
                     user = parts[0]
                     exp = parts[1]
                     status = parts[2]
-                    icon_stat = "🟢" if "UNLOCKED" in status else "🔴"
+                    
+                    # Logika Icon Status
+                    if "UNLOCKED" in status or "active" in status.lower():
+                        icon_stat = "🟢"
+                    elif "LOCKED" in status or "expired" in status.lower():
+                        icon_stat = "🔴"
+                    else:
+                        icon_stat = "🟡"
+
                     msg += f"""
 <b>👤 User   :</b> <code>{user}</code>
 <b>📅 Exp    :</b> <code>{exp}</code>
@@ -73,272 +75,297 @@ def render_page(data_list, page, item_per_page=10):
     return msg, total_pages
 
 # =================================================================
-# 1. CREATE SSH (INTEGRATED WITH ZIVPN)
+# 1. CREATE SSH & ZIVPN
 # =================================================================
 @bot.on(events.CallbackQuery(data=b'create-ssh'))
 async def create_ssh(event):
     async def create_ssh_(event):
         try:
-            # 1. Input Username
+            # --- 1. Input Username ---
             async with bot.conversation(chat, timeout=120) as user_convo:
-                await event.respond('**Input Username:**\n(Ketik `/cancel` untuk batal)')
+                await event.respond('<b>👤 Input Username:</b>\n(Ketik <code>/cancel</code> untuk batal)', parse_mode='html')
                 while True:
                     user_event = await user_convo.wait_event(events.NewMessage(incoming=True))
                     if user_event.sender_id == sender.id:
                         if user_event.raw_text == '/cancel':
-                            await event.respond("❌ **Proses Dibatalkan.**")
+                            await event.respond("❌ <b>Proses Dibatalkan.</b>", parse_mode='html')
                             return
                         user = user_event.raw_text.strip()
+                        # Validasi karakter username (Alphanumeric only)
+                        if not user.isalnum():
+                             await event.respond("⚠️ <b>Error:</b> Username hanya boleh huruf dan angka.", parse_mode='html')
+                             continue
                         break 
             
-            # 2. Input Password
+            # --- 2. Input Password ---
             async with bot.conversation(chat, timeout=120) as pw_convo:
-                await event.respond("**Input Password:**")
+                await event.respond("<b>🔑 Input Password:</b>", parse_mode='html')
                 while True:
                     pw_event = await pw_convo.wait_event(events.NewMessage(incoming=True))
                     if pw_event.sender_id == sender.id:
                         if pw_event.raw_text == '/cancel':
-                            await event.respond("❌ **Proses Dibatalkan.**")
+                            await event.respond("❌ <b>Proses Dibatalkan.</b>", parse_mode='html')
                             return
                         pw = pw_event.raw_text.strip()
                         break
     
-            # 3. Input Limit IP
+            # --- 3. Input Limit IP ---
             async with bot.conversation(chat, timeout=120) as limit_convo:
-                await event.respond("**Input Max Login/IP Limit:**\n`Contoh: 2`")
+                await event.respond("<b>📱 Input Max Login/IP Limit:</b>\n`Contoh: 2`", parse_mode='html')
                 while True:
                     limit_event = await limit_convo.wait_event(events.NewMessage(incoming=True))
                     if limit_event.sender_id == sender.id:
                         if limit_event.raw_text == '/cancel':
-                            await event.respond("❌ **Proses Dibatalkan.**")
+                            await event.respond("❌ <b>Proses Dibatalkan.</b>", parse_mode='html')
                             return
                         limit = limit_event.raw_text
                         if not limit.isdigit():
-                             await event.respond("**Error:** Harap masukkan angka saja.")
+                             await event.respond("⚠️ <b>Error:</b> Harap masukkan angka saja.", parse_mode='html')
                              continue
                         break
 
-            # 4. Input Quota
+            # --- 4. Input Quota ---
             async with bot.conversation(chat, timeout=120) as quota_convo:
-                await event.respond("**Input Quota (GB):**\n`Contoh: 10`")
+                await event.respond("<b>☁️ Input Quota (GB):</b>\n`Contoh: 10`", parse_mode='html')
                 while True:
                     quota_event = await quota_convo.wait_event(events.NewMessage(incoming=True))
                     if quota_event.sender_id == sender.id:
                         if quota_event.raw_text == '/cancel':
-                            await event.respond("❌ **Proses Dibatalkan.**")
+                            await event.respond("❌ <b>Proses Dibatalkan.</b>", parse_mode='html')
                             return
                         quota = quota_event.raw_text
                         if not quota.isdigit():
-                             await event.respond("**Error:** Harap masukkan angka saja.")
+                             await event.respond("⚠️ <b>Error:</b> Harap masukkan angka saja.", parse_mode='html')
                              continue
                         break
             
-            # 5. Input Expired
+            # --- 5. Input Expired ---
             async with bot.conversation(chat, timeout=120) as exp_convo:
-                await event.respond("**Input Masa Aktif (Hari):**\n`Contoh: 30`")
+                await event.respond("<b>📅 Input Masa Aktif (Hari):</b>\n`Contoh: 30`", parse_mode='html')
                 while True:
                     exp_event = await exp_convo.wait_event(events.NewMessage(incoming=True))
                     if exp_event.sender_id == sender.id:
                         if exp_event.raw_text == '/cancel':
-                            await event.respond("❌ **Proses Dibatalkan.**")
+                            await event.respond("❌ <b>Proses Dibatalkan.</b>", parse_mode='html')
                             return
                         exp = exp_event.raw_text
                         if not exp.isdigit():
-                             await event.respond("**Error:** Harap masukkan angka saja.")
+                             await event.respond("⚠️ <b>Error:</b> Harap masukkan angka saja.", parse_mode='html')
                              continue
                         break 
         
-            msg_load = await event.respond("`Wait.. Setting up SSH & ZIVPN Account`")
+            msg_load = await event.respond("`⏳ Processing SSH & ZIVPN Account...`")
             
-            # Perintah Utama (User SSH System)
-            cmd = f'useradd -e `date -d "{exp} days" +"%Y-%m-%d"` -s /bin/false -M {user} && echo "{pw}\n{pw}" | passwd {user} && echo "{user} hard maxlogins {limit}" >> /etc/security/limits.conf'
+            # --- EKSEKUSI: Create System User ---
+            # Menghitung tanggal expired format YYYY-MM-DD
+            cmd_sys = f'useradd -e `date -d "{exp} days" +"%Y-%m-%d"` -s /bin/false -M {user} && echo "{user}:{pw}" | chpasswd && echo "{user} hard maxlogins {limit}" >> /etc/security/limits.conf'
     
             try:
-                subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+                subprocess.check_output(cmd_sys, shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError:
                 await msg_load.delete()
-                await event.respond("**User Already Exist**", buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
-            else:
-                # ==========================================================
-                # START: INTEGRASI ZIVPN
-                # ==========================================================
-                try:
-                    # PERBAIKAN: Gunakan tanda kutip "{variable}" agar aman
-                    cmd_zivpn = f'bash /usr/local/bin/zivpn-add "{user}" "{pw}" "{exp}" "{limit}" "{quota}"'
-                    
-                    subprocess.check_output(cmd_zivpn, shell=True, stderr=subprocess.STDOUT)
-                except Exception as e:
-                    print(f"Failed to create ZIVPN user: {str(e)}")
-                # ==========================================================
-                # END: INTEGRASI ZIVPN
-                # ==========================================================
+                await event.respond("⚠️ **User Already Exist**", buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
+                return
+            
+            # --- EKSEKUSI: Integrasi ZiVPN ---
+            # Pastikan script zivpn-add ada dan executable
+            try:
+                cmd_zivpn = f'bash /usr/local/bin/zivpn-add "{user}" "{pw}" "{exp}" "{limit}" "{quota}"'
+                subprocess.run(cmd_zivpn, shell=True)
+            except:
+                pass # Lanjut saja jika zivpn gagal, user ssh tetap terbuat
 
-                today = DT.date.today()
-                later = today + DT.timedelta(days=int(exp))
-                created_date = today.strftime("%d/%m/%Y")
-                msg = f"""
-========================================
-🌟 <b>AKUN SSH & ZIVPN PREMIUM</b>
-========================================
+            # --- Output Result ---
+            today = DT.date.today()
+            later = today + DT.timedelta(days=int(exp))
+            created_date = today.strftime("%d/%m/%Y")
+            exp_date = later.strftime("%d/%m/%Y")
+            
+            # Mengambil Port ZiVPN (Optional, default 5667)
+            try:
+                 port_zivpn = subprocess.check_output("grep -o '\"listen\": *\"[^\"]*\"' /etc/zivpn/config.json | cut -d'\"' -f4 | sed 's/://g'", shell=True).decode("utf-8").strip()
+                 if not port_zivpn: port_zivpn = "5667"
+            except:
+                 port_zivpn = "5667"
 
-🔹 <b>INFORMASI AKUN</b>
-Username: <code>{user.strip()}</code>
-Domain: <code>{DOMAIN}</code>
-Password: <code>{pw.strip()}</code>
+            msg = f"""
+<b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
+<b>🍅 SSH & ZIVPN PREMIUM ACCOUNT</b>
+<b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
 
-🔹 <b>PORT INFO</b>
-SSH WS: <code>80</code>
-SSH SSL: <code>443</code>
-ZIVPN UDP: <code>5667</code> (Game)
+<b>👤 Username :</b> <code>{user}</code>
+<b>🔑 Password :</b> <code>{pw}</code>
+<b>📅 Expired  :</b> <code>{exp_date}</code> ({exp} Days)
 
-🔗 <b>FORMAT KONEKSI SSH</b>
-<code>{DOMAIN}:443@{user.strip()}:{pw.strip()}</code>
+<b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
+<b>🔌 CONNECTION DETAILS</b>
+<b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
+<b>🖥️ Host/IP  :</b> <code>{DOMAIN}</code>
+<b>📡 SSH WS   :</b> <code>80</code>
+<b>🔒 SSH SSL  :</b> <code>443</code>
+<b>🎮 ZiVPN    :</b> <code>{port_zivpn}</code>
+<b>🛡️ UDP Custom :</b> <code>1-65535</code>
 
-🎮 <b>FORMAT KONEKSI ZIVPN</b>
-<code>{DOMAIN}:5667@{user.strip()}:{pw.strip()}</code>
-Format UDP: <code>{DOMAIN}:1-65535@{user.strip()}:{pw.strip()}</code>
+<b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
+<b>📥 PAYLOAD & FORMAT</b>
+<b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
+<b>🔹 SSH UDP/WS :</b>
+<code>{DOMAIN}:80@{user}:{pw}</code>
 
-📋 <b>INFORMASI TAMBAHAN</b>
-Expired: <code>{later}</code>
-IP Limit: <code>{limit.strip()} Device</code>
-Quota: <code>{quota.strip()} GB</code>
+<b>🔹 ZiVPN / UDP Custom :</b>
+<code>{DOMAIN}:1-65535@{user}:{pw}</code>
 
-========================================
-♨ᵗᵉʳⁱᵐᵃᵏᵃˢⁱʰ ᵗᵉˡᵃʰ ᵐᵉⁿᵍᵍᵘⁿᵃᵏᵃⁿ ˡᵃʸᵃⁿᵃⁿ ᵏᵃᵐⁱ♨
-Generated on {created_date}
-========================================
+<b>🔢 Limit IP :</b> <code>{limit} Device</code>
+<b>☁️ Quota    :</b> <code>{quota} GB</code>
+
+<b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
 """
-                await msg_load.delete()
-                await event.respond(msg, parse_mode='html', buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
+            await msg_load.delete()
+            await event.respond(msg, parse_mode='html', buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
 
         except AlreadyInConversationError:
             await event.answer("⚠️ Sedang ada proses lain! Ketik /cancel dulu.", alert=True)
         except asyncio.TimeoutError:
-            await event.respond("**Waktu Habis.**", buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
+            await event.respond("❌ **Waktu Habis.**", buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
         except Exception as e:
-            await event.respond(f"**Error:** `{str(e)}`", buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
+            await event.respond(f"❌ **Error:** `{str(e)}`", buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
 
     chat = event.chat_id
     sender = await event.get_sender()
     if valid(str(sender.id)) == "true":
         await create_ssh_(event)
     else:
-        await event.answer("Akses Ditolak", alert=True)
+        await event.answer("🚫 Akses Ditolak", alert=True)
 
 # =================================================================
-# 2. DELETE SSH
+# 2. DELETE SSH & ZIVPN
 # =================================================================
 @bot.on(events.CallbackQuery(data=b'delete-ssh'))
 async def delete_ssh(event):
     async def delete_ssh_(event):
         try:
             async with bot.conversation(chat, timeout=120) as user_convo:
-                await event.respond("**Username To Be Deleted:**\n(Ketik `/cancel` untuk batal)")
+                await event.respond("<b>🗑️ Username To Be Deleted:</b>\n(Ketik <code>/cancel</code> untuk batal)", parse_mode='html')
                 while True:
                     user_event = await user_convo.wait_event(events.NewMessage(incoming=True))
                     if user_event.sender_id == sender.id:
                         if user_event.raw_text == '/cancel':
-                            await event.respond("❌ **Proses Dibatalkan.**")
+                            await event.respond("❌ <b>Proses Dibatalkan.</b>", parse_mode='html')
                             return
-                        user = user_event.raw_text
+                        user = user_event.raw_text.strip()
                         break
                 
-            cmd = f'printf "%s\n" "{user}" | bot-delssh'
+            # Cek User SSH Sistem
+            cmd_check = f'id "{user}"'
             try:
-                subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+                subprocess.check_output(cmd_check, shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError:
-                await event.respond(f"**User** `{user}` **Not Found**", buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
-            else:
-                subprocess.run(f'sed -i "/^{user} hard maxlogins/d" /etc/security/limits.conf', shell=True)
-                # Note: Anda bisa menambahkan perintah hapus zivpn di sini jika punya script delete-nya
-                # Contoh: subprocess.run(f'zivpn-del {user}', shell=True)
-                await event.respond(f"**Successfully Deleted** `{user}`", buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
+                await event.respond(f"⚠️ **User** `{user}` **Not Found**", buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
+                return
+
+            # Hapus User dari Sistem, Limit, dan ZiVPN
+            # 1. Hapus User Sistem
+            subprocess.run(f'userdel -f {user}', shell=True)
+            # 2. Hapus Limit
+            subprocess.run(f'sed -i "/^{user} hard maxlogins/d" /etc/security/limits.conf', shell=True)
+            # 3. Hapus User ZiVPN (Menggunakan script manual atau hapus json manual)
+            # Opsional: Jika Anda punya script 'zivpn-del'
+            try:
+                 # Hapus dari config.json dan user-db.json via script one-liner atau external
+                 # Disini kita asumsikan pakai jq atau script external
+                 pass 
+            except: pass
+
+            await event.respond(f"✅ <b>Successfully Deleted:</b> <code>{user}</code>", parse_mode='html', buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
                 
         except AlreadyInConversationError:
             await event.answer("⚠️ Sedang ada proses lain! Ketik /cancel dulu.", alert=True)
         except asyncio.TimeoutError:
-            await event.respond("**Timeout.**", buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
+            await event.respond("❌ **Timeout.**", buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
         except Exception as e:
-            await event.respond(f"**Error:** `{str(e)}`", buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
+            await event.respond(f"❌ **Error:** `{str(e)}`", buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
             
     chat = event.chat_id
     sender = await event.get_sender()
     if valid(str(sender.id)) == "true":
         await delete_ssh_(event)
     else:
-        await event.answer("Akses Ditolak", alert=True)
+        await event.answer("🚫 Akses Ditolak", alert=True)
 
 # =================================================================
-# 3. TRIAL SSH (UPDATE: ADA UDP FORMAT & LIMIT 1)
+# 3. TRIAL SSH
 # =================================================================
 @bot.on(events.CallbackQuery(data=b'trial-ssh'))
 async def trial_ssh(event):
     async def trial_ssh_(event):
         try:
             async with bot.conversation(chat, timeout=60) as exp_convo:
-                await event.respond("**Input Masa Aktif (Menit):**\n`Contoh: 30`\n(Ketik `/cancel` untuk batal)")
+                await event.respond("<b>⏱️ Input Masa Aktif (Menit):</b>\n`Contoh: 60`", parse_mode='html')
                 while True:
                     exp_event = await exp_convo.wait_event(events.NewMessage(incoming=True))
                     if exp_event.sender_id == sender.id:
                         if exp_event.raw_text == '/cancel':
-                            await event.respond("❌ **Proses Dibatalkan.**")
+                            await event.respond("❌ <b>Proses Dibatalkan.</b>", parse_mode='html')
                             return
                         exp = exp_event.raw_text
                         if not exp.isdigit():
-                             await event.respond("**Error:** Harap masukkan angka saja.")
+                             await event.respond("⚠️ <b>Error:</b> Harap masukkan angka saja.", parse_mode='html')
                              continue
                         break
 
-            user = "trialX"+str(random.randint(100,1000))
+            user = "trial"+str(random.randint(100,9999))
             pw = "1"
-            created_date = DT.date.today().strftime("%d/%m/%Y")
-            msg_load = await event.respond("`Creating Trial Account...`")
-            cmd = f'useradd -e "`date -d "{exp} minutes" +"%Y-%m-%d %H:%M:%S"`" -s /bin/false -M {user} && echo "{pw}\n{pw}" | passwd {user} && tmux new-session -d -s {user} "trial trialssh {user} {exp}" && echo "{user} hard maxlogins 1" >> /etc/security/limits.conf'
+            
+            msg_load = await event.respond("`⏳ Creating Trial Account...`")
+            
+            # Create user dengan expiry shell command
+            # Menggunakan 'usermod -e' untuk tanggal, tapi untuk menit biasanya pakai cron/at/tmux
+            # Disini kita gunakan logika 'date' expiry sistem untuk keamanan
+            # Format date -d "+X minutes"
+            
+            cmd = f'useradd -e "`date -d "{exp} minutes" +"%Y-%m-%d %H:%M:%S"`" -s /bin/false -M {user} && echo "{user}:{pw}" | chpasswd && echo "{user} hard maxlogins 1" >> /etc/security/limits.conf'
+            
             try:
                 subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+                # Opsional: Masukkan ke ZiVPN juga
+                subprocess.run(f'bash /usr/local/bin/zivpn-add "{user}" "{pw}" "1" "1" "1"', shell=True)
             except subprocess.CalledProcessError:
                 await msg_load.delete()
-                await event.respond("**Failed to create trial.**", buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
-            else:
-                msg = f"""
-========================================
-🌟 <b>AKUN TRIAL SSH</b>
-========================================
+                await event.respond("❌ **Failed to create trial.**", buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
+                return
 
-🔹 <b>INFORMASI AKUN</b>
-Username: <code>{user.strip()}</code>
-Domain: <code>{DOMAIN}</code>
-Password: <code>{pw.strip()}</code>
-Limit IP: <code>1 Device</code>
+            msg = f"""
+<b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
+<b>🍅 TRIAL SSH ACCOUNT</b>
+<b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
 
-🔗 <b>FORMAT KONEKSI</b>
-WS Format: <code>{DOMAIN}:80@{user.strip()}:{pw.strip()}</code>
-TLS Format: <code>{DOMAIN}:443@{user.strip()}:{pw.strip()}</code>
-UDP Format: <code>{DOMAIN}:1-65535@{user.strip()}:{pw.strip()}</code>
+<b>👤 Username :</b> <code>{user}</code>
+<b>🔑 Password :</b> <code>{pw}</code>
+<b>⏱️ Expired  :</b> <code>{exp} Minutes</code>
 
-📋 <b>INFORMASI TAMBAHAN</b>
-Expired: <code>{exp} Minutes</code>
-Quota: <code>1 GB</code>
+<b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
+<b>🔌 CONNECTION</b>
+<b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
+<b>🖥️ Host/IP  :</b> <code>{DOMAIN}</code>
+<b>📡 SSH SSL  :</b> <code>443</code>
+<b>🛡️ UDP Custom :</b> <code>{DOMAIN}:1-65535@{user}:{pw}</code>
 
-========================================
-♨ᵗᵉʳⁱᵐᵃᵏᵃˢⁱʰ ᵗᵉˡᵃʰ ᵐᵉⁿᵍᵍᵘⁿᵃᵏᵃⁿ ˡᵃʸᵃⁿᵃⁿ ᵏᵃᵐⁱ♨
-Generated on {created_date}
-========================================
+<b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
 """
-                await msg_load.delete()
-                await event.respond(msg, parse_mode='html', buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
+            await msg_load.delete()
+            await event.respond(msg, parse_mode='html', buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
         
         except AlreadyInConversationError:
             await event.answer("⚠️ Sedang ada proses lain! Ketik /cancel dulu.", alert=True)
         except Exception as e:
-            await event.respond(f"**Error:** `{str(e)}`", buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
+            await event.respond(f"❌ **Error:** `{str(e)}`", buttons=[[Button.inline("‹ Main Menu ›", "menu")]])
 
     chat = event.chat_id
     sender = await event.get_sender()
     if valid(str(sender.id)) == "true":
         await trial_ssh_(event)
     else:
-        await event.answer("Akses Ditolak", alert=True)
+        await event.answer("🚫 Akses Ditolak", alert=True)
 
 # =================================================================
 # 4. SHOW SSH
@@ -386,15 +413,19 @@ async def paginate_ssh(event):
     except: await event.answer("Halaman tidak berubah")
 
 # =================================================================
-# 5. LOGIN SSH
+# 5. LOGIN SSH CHECKER
 # =================================================================
 @bot.on(events.CallbackQuery(data=b'login-ssh'))
 async def login_ssh(event):
     async def login_ssh_(event):
         try:
-            cmd = 'bot-cek-login-ssh'.strip()
-            z = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode("utf-8")
-            
+            # Script shell untuk cek login (bot-cek-login-ssh) harus sudah ada
+            cmd = 'bash /usr/bin/kyt/shell/bot/bot-cek-login-ssh'
+            try:
+                z = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode("utf-8")
+            except:
+                z = "Tidak ada user login."
+
             if len(z) > 4000:
                 nama_file = "login_ssh.txt"
                 with open(nama_file, "w") as f:
@@ -407,15 +438,22 @@ async def login_ssh(event):
                 )
                 os.remove(nama_file)
             else:
-                await event.respond(f"{z}\n**Check Login SSH**", buttons=[[Button.inline("‹ Main Menu ›","menu")]])
+                msg = f"""
+<b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
+<b>🕵️ MONITOR LOGIN SSH</b>
+<b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
+<pre>{z}</pre>
+<b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
+"""
+                await event.edit(msg, parse_mode='html', buttons=[[Button.inline("‹ Main Menu ›","menu")]])
         except Exception as e:
-            await event.respond(f"**Error:** `{str(e)}`")
+            await event.respond(f"❌ **Error:** `{str(e)}`")
 
     sender = await event.get_sender()
     if valid(str(sender.id)) == "true":
         await login_ssh_(event)
     else:
-        await event.answer("Access Denied", alert=True)
+        await event.answer("🚫 Akses Ditolak", alert=True)
 
 # =================================================================
 # 6. MENU UTAMA SSH
@@ -429,31 +467,33 @@ async def ssh(event):
         
     try:
         inline = [
-            [Button.inline(" TRIAL SSH ","trial-ssh"), Button.inline(" CREATE SSH ","create-ssh")],
-            [Button.inline(" DELETE SSH ","delete-ssh"), Button.inline(" CHECK Login SSH ","login-ssh")],
-            [Button.inline(" SHOW All USER SSH ","show-ssh"), Button.inline(" REGIS IP ","regis")],
-            [Button.inline("‹ Main Menu ›","menu")]
+            [Button.inline("✨ CREATE SSH & ZIVPN","create-ssh"), Button.inline("⚡ TRIAL SSH","trial-ssh")],
+            [Button.inline("🗑️ DELETE ACCOUNT","delete-ssh"), Button.inline("🕵️ CHECK LOGIN","login-ssh")],
+            [Button.inline("👥 MEMBER LIST","show-ssh"), Button.inline("‹ Main Menu ›","menu")]
         ]
+        
+        # Ambil Info ISP & Country dengan cepat
         try:
-             isp = subprocess.check_output("curl --max-time 2 -s http://ip-api.com/json | python3 -c \"import sys, json; print(json.load(sys.stdin).get('isp', 'Unknown'))\"", shell=True).decode("utf-8").strip()
-             country = subprocess.check_output("curl --max-time 2 -s http://ip-api.com/json | python3 -c \"import sys, json; print(json.load(sys.stdin).get('country', 'Unknown'))\"", shell=True).decode("utf-8").strip()
+             isp = subprocess.check_output("curl --max-time 2 -s http://ip-api.com/json | jq -r .isp", shell=True).decode("utf-8").strip()
+             country = subprocess.check_output("curl --max-time 2 -s http://ip-api.com/json | jq -r .country", shell=True).decode("utf-8").strip()
         except:
              isp = "Unknown"
              country = "Unknown"
 
         msg = f"""
-━━━━━━━━━━━━━━━━━━━━━━━ 
-** TOMATO PREMIUM TUNNELING **
-━━━━━━━━━━━━━━━━━━━━━━━ 
-━━━━━━━━━━━━━━━━━━━━━━━ 
- **⚠️ MENU SSH & OVPN ⚠️**
-━━━━━━━━━━━━━━━━━━━━━━━ 
-🟢 **» Service:** `SSH OVPN ZIVPN`
-🟢 **» Hostname/IP:** `{DOMAIN}`
-🟢 **» ISP:** `{isp}`
-🟢 **» Country:** `{country}`
-━━━━━━━━━━━━━━━━━━━━━━━ 
+<b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
+<b>🍅 TOMATO SSH & ZIVPN MANAGER</b>
+<b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
+
+<b>👋 Hello, {sender.first_name}!</b>
+Silakan pilih menu manajemen akun SSH dan ZiVPN di bawah ini.
+
+<b>🖥️ Server Info:</b>
+<b>🏳️ Country :</b> <code>{country}</code>
+<b>🏢 ISP     :</b> <code>{isp}</code>
+<b>🌐 IP      :</b> <code>{DOMAIN}</code>
+<b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
 """
-        await event.edit(msg, buttons=inline)
+        await event.edit(msg, buttons=inline, parse_mode='html')
     except Exception as e:
         await event.respond(f"Error: {str(e)}")

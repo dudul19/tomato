@@ -46,7 +46,7 @@ KERNEL=$(uname -r)
 UPTIME=$(uptime -p | cut -d " " -f 2-10)
 
 # License Check (Simulated based on original script)
-IZIN_URL="https://raw.githubusercontent.com/dudul19/tomato/main/izin"
+IZIN_URL="https://raw.githubusercontent.com/dudul19/license/main/tomato"
 USER_DATA=$(curl -s ${IZIN_URL} | grep $IPVPS)
 VALID_UNTIL=$(echo "$USER_DATA" | awk '{print $3}')
 
@@ -113,9 +113,9 @@ run_speedtest() {
         UL=$(grep "Upload" /tmp/speedtest.txt | awk '{print $2}')
         
         echo -e "${C_BURGUNDY}╔══════════════════════════════════════════════════════╗${C_RESET}"
-        printf "${C_BURGUNDY}║${C_RESET} ${C_CREAM}%-15s${C_RESET} : ${C_SAGE}%-32s${C_RESET} ${C_BURGUNDY}║${C_RESET}\n" "Latency" "$PING ms"
-        printf "${C_BURGUNDY}║${C_RESET} ${C_CREAM}%-15s${C_RESET} : ${C_GOLD}%-32s${C_RESET} ${C_BURGUNDY}║${C_RESET}\n" "Download" "$DL Mbps"
-        printf "${C_BURGUNDY}║${C_RESET} ${C_CREAM}%-15s${C_RESET} : ${C_GOLD}%-32s${C_RESET} ${C_BURGUNDY}║${C_RESET}\n" "Upload" "$UL Mbps"
+        printf "${C_BURGUNDY}║${C_RESET} ${C_CREAM}%-15s${C_RESET} : ${C_SAGE}%-32s${C_RESET}   ${C_BURGUNDY}║${C_RESET}\n" "Latency" "$PING ms"
+        printf "${C_BURGUNDY}║${C_RESET} ${C_CREAM}%-15s${C_RESET} : ${C_GOLD}%-32s${C_RESET}   ${C_BURGUNDY}║${C_RESET}\n" "Download" "$DL Mbps"
+        printf "${C_BURGUNDY}║${C_RESET} ${C_CREAM}%-15s${C_RESET} : ${C_GOLD}%-32s${C_RESET}   ${C_BURGUNDY}║${C_RESET}\n" "Upload" "$UL Mbps"
         echo -e "${C_BURGUNDY}╚══════════════════════════════════════════════════════╝${C_RESET}"
     else
         echo -e "  ${C_TOMATO}${ICON_CROSS} Speedtest Failed. Check internet connection.${C_RESET}"
@@ -150,45 +150,47 @@ s_zivpn=$(check_service zivpn)
 # ==========================================================
 clear
 echo -e "${C_BURGUNDY}╔══════════════════════════════════════════════════════╗${C_RESET}"
-echo -e "${C_BURGUNDY}║${C_RESET} ${C_SAGE}${ICON_TOMATO}    ${C_TOMATO}TOMATO LUXE${C_RESET} ${C_GOLD}(ADMIN DASHBOARD)${C_RESET}               ${C_BURGUNDY}║${C_RESET}"
+echo -e "${C_BURGUNDY}║${C_RESET} ${C_SAGE}          ${ICON_TOMATO}  ${C_TOMATO}TOMATO AUTOSCRIPT${C_RESET} ${C_GOLD}(PREMIUM)${C_RESET}            ${C_BURGUNDY}║${C_RESET}"
 echo -e "${C_BURGUNDY}╠══════════════════════════════════════════════════════╣${C_RESET}"
 # System Info
-echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}${ICON_VPS} OS       :${C_RESET} ${C_CREAM}${OS_NAME:0:20}${C_RESET}"
-echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}${ICON_ISP} IP/ISP   :${C_RESET} ${C_CREAM}${IPVPS} (${ISP:0:10})${C_RESET}"
-echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}${ICON_STAR} Domain   :${C_RESET} ${C_CREAM}${DOMAIN}${C_RESET}"
-echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}${ICON_RAM} RAM      :${C_RESET} ${C_CREAM}${RAM_USED}/${RAM_TOTAL}MB${C_RESET} ${C_GOLD}${ICON_CPU} CPU :${C_RESET} ${C_CREAM}${CPU_LOAD}${C_RESET}"
-echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}${ICON_CHECK} License  :${C_RESET} ${LICENSE_STATUS} ${C_CREAM}(${DAYS_LEFT} Days)${C_RESET}"
+echo -e "${C_BURGUNDY} ${C_RESET} ${C_GOLD}${ICON_VPS}  OS       :${C_RESET} ${C_CREAM}${OS_NAME:0:20}${C_RESET}"
+echo -e "${C_BURGUNDY} ${C_RESET} ${C_GOLD}${ICON_ISP} IP/ISP   :${C_RESET} ${C_CREAM}${IPVPS} (${ISP:0:10})${C_RESET}"
+echo -e "${C_BURGUNDY} ${C_RESET} ${C_GOLD}${ICON_STAR} Domain   :${C_RESET} ${C_CREAM}${DOMAIN}${C_RESET}"
+echo -e "${C_BURGUNDY} ${C_RESET} ${C_GOLD}${ICON_RAM} RAM      :${C_RESET} ${C_CREAM}${RAM_USED}/${RAM_TOTAL}MB${C_RESET} ${C_GOLD}${C_RESET}"
+echo -e "${C_BURGUNDY} ${C_RESET} ${C_GOLD}${ICON_CPU} CPU      :${C_RESET} ${C_CREAM}${CPU_LOAD}"
+echo -e "${C_BURGUNDY} ${C_RESET} ${C_GOLD}${ICON_USER} Version  :${C_RESET} ${C_CREAM}Tomat Merah V.1.1 - LTS${C_RESET}"
+echo -e "${C_BURGUNDY} ${C_RESET} ${C_GOLD}${ICON_CHECK}  License  :${C_RESET} ${LICENSE_STATUS} ${C_CREAM}(${DAYS_LEFT} Days)${C_RESET}"
 echo -e "${C_BURGUNDY}╠══════════════════════════════════════════════════════╣${C_RESET}"
 
 # Service Status (2 Column)
-echo -e "${C_BURGUNDY}║${C_RESET}                  ${C_SAGE}SERVICE STATUS${C_RESET}                      ${C_BURGUNDY}║${C_RESET}"
+echo -e "${C_BURGUNDY}║${C_RESET}                    ${C_SAGE}SERVICE STATUS${C_RESET}                    ${C_BURGUNDY}║${C_RESET}"
 echo -e "${C_BURGUNDY}╠══════════════════════════════════════════════════════╣${C_RESET}"
-printf "${C_BURGUNDY}║${C_RESET} ${C_CREAM}%-10s${C_RESET} %-14s ${C_BURGUNDY}│${C_RESET} ${C_CREAM}%-10s${C_RESET} %-14s ${C_BURGUNDY}║${C_RESET}\n" "SSH" "$s_ssh" "XRAY" "$s_xray"
-printf "${C_BURGUNDY}║${C_RESET} ${C_CREAM}%-10s${C_RESET} %-14s ${C_BURGUNDY}│${C_RESET} ${C_CREAM}%-10s${C_RESET} %-14s ${C_BURGUNDY}║${C_RESET}\n" "NGINX" "$s_nginx" "HAPROXY" "$s_haproxy"
-printf "${C_BURGUNDY}║${C_RESET} ${C_CREAM}%-10s${C_RESET} %-14s ${C_BURGUNDY}│${C_RESET} ${C_CREAM}%-10s${C_RESET} %-14s ${C_BURGUNDY}║${C_RESET}\n" "WS-EPRO" "$s_ws_epro" "DROPBEAR" "$s_dropbear"
-printf "${C_BURGUNDY}║${C_RESET} ${C_CREAM}%-10s${C_RESET} %-14s ${C_BURGUNDY}│${C_RESET} ${C_CREAM}%-10s${C_RESET} %-14s ${C_BURGUNDY}║${C_RESET}\n" "UDP-CUST" "$s_udp" "ZIVPN" "$s_zivpn"
+printf "${C_BURGUNDY}║${C_RESET} ${C_CREAM}%-10s${C_RESET} %-13s          ${C_BURGUNDY}│${C_RESET} ${C_CREAM}%-10s${C_RESET} %-14s         ${C_BURGUNDY}║${C_RESET}\n" "SSH" "$s_ssh" "XRAY" "$s_xray"
+printf "${C_BURGUNDY}║${C_RESET} ${C_CREAM}%-10s${C_RESET} %-13s          ${C_BURGUNDY}│${C_RESET} ${C_CREAM}%-10s${C_RESET} %-14s         ${C_BURGUNDY}║${C_RESET}\n" "NGINX" "$s_nginx" "HAPROXY" "$s_haproxy"
+printf "${C_BURGUNDY}║${C_RESET} ${C_CREAM}%-10s${C_RESET} %-13s          ${C_BURGUNDY}│${C_RESET} ${C_CREAM}%-10s${C_RESET} %-14s         ${C_BURGUNDY}║${C_RESET}\n" "WS-EPRO" "$s_ws_epro" "DROPBEAR" "$s_dropbear"
+printf "${C_BURGUNDY}║${C_RESET} ${C_CREAM}%-10s${C_RESET} %-13s          ${C_BURGUNDY}│${C_RESET} ${C_CREAM}%-10s${C_RESET} %-14s         ${C_BURGUNDY}║${C_RESET}\n" "UDP-CUST" "$s_udp" "ZIVPN" "$s_zivpn"
 echo -e "${C_BURGUNDY}╠══════════════════════════════════════════════════════╣${C_RESET}"
 
 # Account Stats
-echo -e "${C_BURGUNDY}║${C_RESET}                  ${C_GOLD}ACCOUNT STATS${C_RESET}                       ${C_BURGUNDY}║${C_RESET}"
+echo -e "${C_BURGUNDY}║${C_RESET}                    ${C_GOLD}ACCOUNT STATS${C_RESET}                     ${C_BURGUNDY}║${C_RESET}"
 echo -e "${C_BURGUNDY}╠══════════════════════════════════════════════════════╣${C_RESET}"
-printf "${C_BURGUNDY}║${C_RESET} ${C_GOLD}%-10s${C_RESET} ${C_CREAM}: %-12s${C_RESET} ${C_BURGUNDY}│${C_RESET} ${C_GOLD}%-10s${C_RESET} ${C_CREAM}: %-12s${C_RESET} ${C_BURGUNDY}║${C_RESET}\n" "SSH/OVPN" "$total_ssh" "VLESS" "$total_vless"
-printf "${C_BURGUNDY}║${C_RESET} ${C_GOLD}%-10s${C_RESET} ${C_CREAM}: %-12s${C_RESET} ${C_BURGUNDY}│${C_RESET} ${C_GOLD}%-10s${C_RESET} ${C_CREAM}: %-12s${C_RESET} ${C_BURGUNDY}║${C_RESET}\n" "VMESS" "$total_vmess" "TROJAN" "$total_trojan"
-printf "${C_BURGUNDY}║${C_RESET} ${C_GOLD}%-10s${C_RESET} ${C_CREAM}: %-12s${C_RESET} ${C_BURGUNDY}│${C_RESET} ${C_GOLD}%-10s${C_RESET} ${C_CREAM}: %-12s${C_RESET} ${C_BURGUNDY}║${C_RESET}\n" "SHADOW" "$total_ss" " " " "
+printf "${C_BURGUNDY}║${C_RESET} ${C_GOLD}%-10s${C_RESET} ${C_CREAM}: %-11s${C_RESET} ${C_BURGUNDY}│${C_RESET} ${C_GOLD}%-10s${C_RESET} ${C_CREAM}: %-12s${C_RESET} ${C_BURGUNDY}║${C_RESET}\n" "SSH/OVPN" "$total_ssh" "VLESS" "$total_vless"
+printf "${C_BURGUNDY}║${C_RESET} ${C_GOLD}%-10s${C_RESET} ${C_CREAM}: %-11s${C_RESET} ${C_BURGUNDY}│${C_RESET} ${C_GOLD}%-10s${C_RESET} ${C_CREAM}: %-12s${C_RESET} ${C_BURGUNDY}║${C_RESET}\n" "VMESS" "$total_vmess" "TROJAN" "$total_trojan"
+printf "${C_BURGUNDY}║${C_RESET} ${C_GOLD}%-10s${C_RESET} ${C_CREAM}: %-11s${C_RESET} ${C_BURGUNDY}│${C_RESET} ${C_GOLD}%-10s${C_RESET} ${C_CREAM}: %-12s${C_RESET} ${C_BURGUNDY}║${C_RESET}\n" "SHADOW" "$total_ss" "ZIVPN" "$total_ssh"
 echo -e "${C_BURGUNDY}╠══════════════════════════════════════════════════════╣${C_RESET}"
 
 # Menu Options
-echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}[01]${C_RESET} ${C_CREAM}MENU SSH${C_RESET}         ${C_BURGUNDY}│${C_RESET} ${C_GOLD}[06]${C_RESET} ${C_CREAM}MENU TRIAL${C_RESET}       ${C_BURGUNDY}║${C_RESET}"
-echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}[02]${C_RESET} ${C_CREAM}MENU VMESS${C_RESET}       ${C_BURGUNDY}│${C_RESET} ${C_GOLD}[07]${C_RESET} ${C_CREAM}SPEEDTEST${C_RESET}        ${C_BURGUNDY}║${C_RESET}"
-echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}[03]${C_RESET} ${C_CREAM}MENU VLESS${C_RESET}       ${C_BURGUNDY}│${C_RESET} ${C_GOLD}[08]${C_RESET} ${C_CREAM}MENU UTILITY${C_RESET}     ${C_BURGUNDY}║${C_RESET}"
-echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}[04]${C_RESET} ${C_CREAM}MENU TROJAN${C_RESET}      ${C_BURGUNDY}│${C_RESET} ${C_GOLD}[09]${C_RESET} ${C_CREAM}MENU ZIVPN${C_RESET}       ${C_BURGUNDY}║${C_RESET}"
-echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}[05]${C_RESET} ${C_CREAM}MENU SSWS${C_RESET}        ${C_BURGUNDY}│${C_RESET} ${C_GOLD}[10]${C_RESET} ${C_CREAM}CHECK VPS${C_RESET}        ${C_BURGUNDY}║${C_RESET}"
+echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}[01]${C_RESET} ${C_CREAM}MENU SSH${C_RESET}            ${C_BURGUNDY}│${C_RESET} ${C_GOLD}[06]${C_RESET} ${C_CREAM}MENU TRIAL${C_RESET}           ${C_BURGUNDY}║${C_RESET}"
+echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}[02]${C_RESET} ${C_CREAM}MENU VMESS${C_RESET}          ${C_BURGUNDY}│${C_RESET} ${C_GOLD}[07]${C_RESET} ${C_CREAM}MENU SLOWDNS${C_RESET}         ${C_BURGUNDY}║${C_RESET}"
+echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}[03]${C_RESET} ${C_CREAM}MENU VLESS${C_RESET}          ${C_BURGUNDY}│${C_RESET} ${C_GOLD}[08]${C_RESET} ${C_CREAM}MENU UTILITY${C_RESET}         ${C_BURGUNDY}║${C_RESET}"
+echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}[04]${C_RESET} ${C_CREAM}MENU TROJAN${C_RESET}         ${C_BURGUNDY}│${C_RESET} ${C_GOLD}[09]${C_RESET} ${C_CREAM}MENU ZIVPN${C_RESET}           ${C_BURGUNDY}║${C_RESET}"
+echo -e "${C_BURGUNDY}║${C_RESET} ${C_GOLD}[05]${C_RESET} ${C_CREAM}MENU SSWS${C_RESET}           ${C_BURGUNDY}│${C_RESET} ${C_GOLD}[10]${C_RESET} ${C_CREAM}SPEEDTEST${C_RESET}            ${C_BURGUNDY}║${C_RESET}"
 echo -e "${C_BURGUNDY}╠══════════════════════════════════════════════════════╣${C_RESET}"
-echo -e "${C_BURGUNDY}║${C_RESET} ${C_TOMATO}[00]${C_RESET} ${C_TOMATO}EXIT PANEL${C_RESET}       ${C_BURGUNDY}│${C_RESET} ${C_GOLD}[99]${C_RESET} ${C_GOLD}REBOOT VPS${C_RESET}       ${C_BURGUNDY}║${C_RESET}"
+echo -e "${C_BURGUNDY}║${C_RESET} ${C_TOMATO}[00]${C_RESET} ${C_TOMATO}EXIT PANEL${C_RESET}          ${C_BURGUNDY}│${C_RESET} ${C_GOLD}[99]${C_RESET} ${C_GOLD}REBOOT VPS${C_RESET}           ${C_BURGUNDY}║${C_RESET}"
 echo -e "${C_BURGUNDY}╚══════════════════════════════════════════════════════╝${C_RESET}"
 echo -e ""
 echo -e " ${C_GOLD}${ICON_ARROW} Select Option:${C_RESET}"
-read -p "    > " opt
+read -p " > " opt
 
 case $opt in
     1|01) clear ; m-sshws ;;
@@ -197,10 +199,10 @@ case $opt in
     4|04) clear ; m-trojan ;;
     5|05) clear ; m-ssws ;;
     6|06) clear ; m-trial ;;
-    7|07) run_speedtest ; menu ;;
+    7|07) clear ; sd ;;
     8|08) clear ; menu-x ;;
     9|09) clear ; zivpn-menu ;;
-    10) clear ; cek-vps ;;
+    10) clear ; run_speedtest ; menu ;;
     99) clear ; echo -e "${C_GOLD}Rebooting VPS...${C_RESET}"; reboot ;;
     0|00) clear ; echo -e "${C_SAGE}Thank you for using Tomato Autoscript.${C_RESET}"; exit ;;
     x) menu ;;

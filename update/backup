@@ -1,116 +1,159 @@
 #!/bin/bash
-# HOKAGEVPN Backup Script
-# Only sends Google Drive link to Telegram (no file upload)
-# ==========================================
-# Color Codes
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-NC='\033[0m'
-# ==========================================
 
-# Check requirements
-check_requirements() {
-    for cmd in rclone zip curl; do
-        if ! command -v $cmd &> /dev/null; then
-            echo -e "${RED}Error: $cmd is not installed${NC}"
-            exit 1
-        fi
-    done
+# ==========================================================
+#  TOMATO LUXE THEME ENGINE - CLOUD BACKUP
+# ==========================================================
+
+# 1. Palette Definition (True Color)
+C_TOMATO="\033[38;2;217;69;57m"   # Primary Red
+C_BURGUNDY="\033[38;2;143;38;38m" # Border Red
+C_SAGE="\033[38;2;148;180;159m"   # Success Green
+C_GOLD="\033[38;2;230;203;165m"   # Warning/Highlight
+C_CREAM="\033[38;2;253;251;247m"  # Text
+C_RESET="\033[0m"
+
+# 2. Icons
+ICON_CLOUD="☁️"
+ICON_DISK="💾"
+ICON_LOCK="🔒"
+ICON_CHECK="✔"
+ICON_WARN="⚠️"
+ICON_SEND="✈️"
+ICON_GEAR="⚙"
+
+# ==========================================================
+#  UI FUNCTIONS
+# ==========================================================
+
+draw_header() {
+    clear
+    echo -e "${C_BURGUNDY}╔══════════════════════════════════════════════════════╗${C_RESET}"
+    echo -e "${C_BURGUNDY}║${C_RESET} ${C_SAGE}      ${ICON_CLOUD}  ${C_TOMATO}TOMATO MANAGER BACKUP${C_RESET} ${C_GOLD}(G-DRIVE SYNC)${C_RESET}        ${C_BURGUNDY}║${C_RESET}"
+    echo -e "${C_BURGUNDY}╠══════════════════════════════════════════════════════╣${C_RESET}"
+    echo -e "${C_BURGUNDY}║${C_RESET} ${C_CREAM}System Backup -> Upload -> Telegram Link${C_RESET}             ${C_BURGUNDY}║${C_RESET}"
+    echo -e "${C_BURGUNDY}╚══════════════════════════════════════════════════════╝${C_RESET}"
+    echo -e ""
 }
 
-# Get configuration
-get_config() {
-    CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
-    KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
-    [ -z "$CHATID" ] || [ -z "$KEY" ] && {
-        echo -e "${RED}Error: Telegram bot config not found${NC}"
-        exit 1
-    }
-
-    IP=$(curl -4 -sS icanhazip.com) || {
-        echo -e "${RED}Error: Failed to get IP address${NC}"
-        exit 1
-    }
-    
-    domain=$(cat /etc/xray/domain 2>/dev/null)
-    date=$(date +"%Y-%m-%d")
-    backup_file="backup-$IP-$date.zip"
-    temp_dir="/tmp/backup_$date"
+print_step() {
+    echo -e "  ${C_GOLD}${ICON_GEAR} $1...${C_RESET}"
 }
 
-# Create backup
-create_backup() {
-    echo -e "${YELLOW}Creating backup...${NC}"
-    
-    mkdir -p "$temp_dir" || {
-        echo -e "${RED}Error: Failed to create temp directory${NC}"
-        exit 1
-    }
+print_success() {
+    echo -e "  ${C_SAGE}${ICON_CHECK} $1${C_RESET}"
+    sleep 0.5
+}
 
-    # System files
-    cp -a /etc/passwd /etc/group /etc/shadow /etc/gshadow /etc/crontab "$temp_dir/"
+print_error() {
+    echo -e "  ${C_TOMATO}❌ Error: $1${C_RESET}"
+    exit 1
+}
 
-    # Service configurations
-    [ -d "/etc/xray" ] && cp -a /etc/xray "$temp_dir/"
-    [ -d "/var/lib/kyt" ] && cp -a /var/lib/kyt "$temp_dir/"
-    [ -d "/var/www/html" ] && cp -a /var/www/html "$temp_dir/"
+# ==========================================================
+#  MAIN LOGIC
+# ==========================================================
 
-    # Compress
-    echo -e "${YELLOW}Compressing backup...${NC}"
-    if ! zip -rq "/root/$backup_file" "$temp_dir"; then
-        echo -e "${RED}Error: Failed to create zip file${NC}"
-        exit 1
+draw_header
+
+# --- 1. PRE-CHECK ---
+print_step "Checking dependencies"
+for cmd in rclone zip curl; do
+    if ! command -v $cmd &> /dev/null; then
+        print_error "$cmd is not installed. Please install it first."
     fi
+done
+print_success "Dependencies met"
 
-    rm -rf "$temp_dir"
-}
+# --- 2. GET CONFIG ---
+print_step "Loading configurations"
+CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
+KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
+DOMAIN=$(cat /etc/xray/domain 2>/dev/null || echo "IP-Only")
+IP=$(curl -4 -sS icanhazip.com)
+DATE=$(date +"%Y-%m-%d")
+BACKUP_NAME="backup-$IP-$DATE.zip"
+TEMP_DIR="/tmp/backup_$DATE"
 
-# Upload to Google Drive and get link
-upload_to_drive() {
-    echo -e "${YELLOW}Uploading to Google Drive...${NC}"
-    if ! rclone copy "/root/$backup_file" "dr:backup/"; then
-        echo -e "${RED}Error: Google Drive upload failed${NC}"
-        exit 1
-    fi
-    drive_link=$(rclone link "dr:backup/$backup_file")
-    [ -z "$drive_link" ] && {
-        echo -e "${RED}Error: Failed to get Google Drive link${NC}"
-        exit 1
-    }
-}
+if [ -z "$CHATID" ] || [ -z "$KEY" ]; then
+    print_error "Telegram Bot config not found in /etc/bot/.bot.db"
+fi
+print_success "Config loaded"
 
-# Send only Google Drive link to Telegram
-send_to_telegram() {
-    echo -e "${YELLOW}Sending notification to Telegram...${NC}"
-    
-    message="<b>Tomato Backup Notification</b>
-<code>────────────────────</code>
-<b>🖥️ IP VPS:</b> <code>$IP</code>
-<b>🌐 Domain:</b> <code>${domain:-Not Set}</code>
-<b>📅 Date:</b> <code>$date</code>
-<code>────────────────────</code>
-<b>📥 Download Backup:</b>
-<code>$drive_link</code>
-<code>────────────────────</code>
-<i>Size: $(du -h "/root/$backup_file" | cut -f1)</i>"
+# --- 3. CREATE BACKUP ---
+print_step "Gathering system files"
+mkdir -p "$TEMP_DIR"
 
-    curl -s -X POST "https://api.telegram.org/bot$KEY/sendMessage" \
-        -d chat_id="$CHATID" \
-        -d text="$message" \
-        -d parse_mode="HTML" >/dev/null || {
-        echo -e "${RED}Warning: Failed to send Telegram notification${NC}"
-    }
-}
+# Copy files (Suppress output)
+cp -a /etc/passwd /etc/group /etc/shadow /etc/gshadow /etc/crontab "$TEMP_DIR/" 2>/dev/null
+[ -d "/etc/xray" ] && cp -a /etc/xray "$TEMP_DIR/" 2>/dev/null
+[ -d "/var/lib/kyt" ] && cp -a /var/lib/kyt "$TEMP_DIR/" 2>/dev/null
+[ -d "/var/www/html" ] && cp -a /var/www/html "$TEMP_DIR/" 2>/dev/null
+[ -d "/etc/zivpn" ] && cp -a /etc/zivpn "$TEMP_DIR/" 2>/dev/null
 
-# Main execution
-check_requirements
-get_config
-create_backup
-upload_to_drive
-send_to_telegram
+print_step "Compressing archive"
+if zip -rq "/root/$BACKUP_NAME" "$TEMP_DIR"; then
+    FILE_SIZE=$(du -h "/root/$BACKUP_NAME" | cut -f1)
+    rm -rf "$TEMP_DIR"
+    print_success "Backup created: $BACKUP_NAME ($FILE_SIZE)"
+else
+    print_error "Compression failed"
+fi
 
-# Cleanup and show result
-echo -e "${GREEN}Backup completed successfully!${NC}"
-echo -e "Backup file: ${GREEN}/root/$backup_file${NC}"
-echo -e "Google Drive: ${GREEN}$drive_link${NC}"
+# --- 4. UPLOAD TO DRIVE (RCLONE) ---
+# Note: Pastikan remote rclone bernama "dr" atau sesuaikan di script ini
+print_step "Uploading to Google Drive (Remote: dr)"
+
+if rclone copy "/root/$BACKUP_NAME" "dr:backup/" >/dev/null 2>&1; then
+    print_success "Upload successful"
+else
+    print_error "Rclone upload failed. Check your rclone config."
+fi
+
+print_step "Generating Download Link"
+DRIVE_LINK=$(rclone link "dr:backup/$BACKUP_NAME")
+
+if [ -z "$DRIVE_LINK" ]; then
+    print_error "Failed to generate link. File might be private or path is wrong."
+fi
+print_success "Link generated"
+
+# --- 5. SEND NOTIFICATION ---
+print_step "Sending Telegram Notification"
+
+TEXT="<b>☉——————————————————————————☉</b>
+<b> ${ICON_CLOUD} TOMATO CLOUD BACKUP</b>
+<b>☉——————————————————————————☉</b>
+<b>📅 Date    :</b> <code>$DATE</code>
+<b>🖥️ IP VPS  :</b> <code>$IP</code>
+<b>🌐 Domain  :</b> <code>$DOMAIN</code>
+<b>📦 Size    :</b> <code>$FILE_SIZE</code>
+<b>☉——————————————————————————☉</b>
+<b>📥 GOOGLE DRIVE LINK:</b>
+<code>$DRIVE_LINK</code>
+<b>☉——————————————————————————☉</b>
+<b>${ICON_LOCK} Keep this link safe!</b>"
+
+curl -s -X POST "https://api.telegram.org/bot$KEY/sendMessage" \
+    -d chat_id="$CHATID" \
+    -d text="$TEXT" \
+    -d parse_mode="HTML" \
+    -d disable_web_page_preview="true" > /dev/null
+
+if [ $? -eq 0 ]; then
+    print_success "Notification sent"
+else
+    echo -e "  ${C_GOLD}${ICON_WARN} Warning: Telegram notification failed${C_RESET}"
+fi
+
+# --- 6. CLEANUP ---
+# Optional: Remove local file after upload to save space
+# rm -f "/root/$BACKUP_NAME"
+
+# --- FINAL OUTPUT ---
+echo -e ""
+echo -e "${C_BURGUNDY}╔══════════════════════════════════════════════════════╗${C_RESET}"
+echo -e "${C_BURGUNDY}║${C_RESET} ${C_SAGE}${ICON_CHECK}       ${C_TOMATO}BACKUP PROCESS COMPLETED${C_RESET}        ${C_SAGE}${ICON_CLOUD}${C_RESET}          ${C_BURGUNDY}║${C_RESET}"
+echo -e "${C_BURGUNDY}╚══════════════════════════════════════════════════════╝${C_RESET}"
+echo -e ""
+echo -e "  ${C_GOLD}Link:${C_RESET} ${C_CREAM}$DRIVE_LINK${C_RESET}"
+echo -e ""
